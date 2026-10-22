@@ -110,7 +110,7 @@ function buildList(parsed, pid, perType, seed) {
   // Testing switches:  ?nosave=1  (do not send data to DataPipe)   ?p=test1  (fixed list)   ?debug=1  (stimulus check screen)
   const NOSAVE = params.get('nosave') === '1';
 
-  const files = await fetch('stimuli.json').then(r => r.json());
+  const files = await fetch('stimuli/stimuli.json').then(r => r.json());
   const parsed = parseStimuli(files);
   if (parsed.problems.length) console.warn('Stimulus problems:\n' + parsed.problems.join('\n'));
   if (parsed.complete.length < 2) {
