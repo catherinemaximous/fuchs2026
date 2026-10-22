@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Picture matching</title>
+  <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-audio-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/extension-pipe@0.2.0"></script>
+  <style>
+    .pics { display:flex; gap:100px; justify-content:center; align-items:center; margin-top:30px; }
+    .instr { max-width:800px; margin:auto; text-align:left; line-height:1.5; }
+    .report { max-width:900px; margin:auto; text-align:left; font-size:15px; }
+  </style>
+</head>
+<body>
+<script>
+/* =====================  SETTINGS  ===================== */
+const BLOCK_SIZE = 30;                          // optional break after every 30 trials
+const TRIALS_PER_STRUCTURE = 40;                // 40 RR + 40 SR + 40 OR = 120 trials
+const RESPONSE_ALLOWED_WHILE_PLAYING = false;   // paper does not say; decide and report
+const IMG_WIDTH = 380;
+const LIST_SEED = 1;                            // each participant's list is drawn from LIST_SEED + their random ID
+const DATAPIPE_ID = '7rt3xgiIaLP4';             // your DataPipe experiment ID
+const AUDIO_FOLDER = 'stimuli/Audio files/';    // folders in your GitHub repo (relative to index.html)
+const IMAGE_FOLDER = 'stimuli/Images/';
+/* ===================================================== */
+
+/* BEGIN LOGIC */
+// spelling variants between audio and image names
+const ALIASES = { hippo: 'hipopotamo', hipopotatmo: 'hipopotamo', girafa: 'jirafa', canguru: 'canguro' };
+const normTok = t => { t = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); return ALIASES[t] || t; };
+const normStem = s => s.split('_').map(normTok).join('_');
+
+function hashSeed(str) { let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return h >>> 0; }
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function shuffle(arr, rng) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+// Reads the file names and works out the answer key.
+//  Audio:  PP_/SR_/OR_ + head_verb_other.wav      Images: 01L_agent_verb_patient.jpg / 01R_patient_verb_agent.jpg
+//  PP (=RR) and SR: head noun is the agent   -> correct image = head_verb_other
+//  OR:              head noun is the patient -> correct image = other_verb_head
+function parseStimuli(files) {
+  const pairs = {}, index = {}, problems = [], items = {};
+  for (const f of files.images) {
+    if (/\(\d+\)/.test(f)) { problems.push('ignored duplicate-looking image: ' + f); continue; }
+    const m = f.match(/^(\d+)([LR])_(.+)\.(jpe?g|png)$/i);
+    if (!m) continue;
+    const no = +m[1], side = m[2].toUpperCase();
+    (pairs[no] = pairs[no] || {})[side] = f;
+    index[normStem(m[3])] = { no, side };
+  }
+  for (const f of files.audio) {
+    const m = f.match(/^(PP|SR|OR)_(.+)\.(wav|mp3|ogg)$/i);
+    if (!m) continue;                                  // skips e.g. silence.wav
+    const typ = m[1].toUpperCase(), toks = m[2].split('_').map(normTok);
+    if (toks.length !== 3) { problems.push(f + ': expected head_verb_other'); continue; }
+    const [head, verb, other] = toks;
+    const target = typ === 'OR' ? `${other}_${verb}_${head}` : `${head}_${verb}_${other}`;
+    const hit = index[target];
+    if (!hit) { problems.push(`${f}: no image named '${target}'`); continue; }
+    const foilSide = hit.side === 'L' ? 'R' : 'L';
+    if (!pairs[hit.no][foilSide]) { problems.push(`${f}: pair ${hit.no} is missing its ${foilSide} image`); continue; }
+    (items[hit.no] = items[hit.no] || {})[typ] = { pair: hit.no, structure: typ === 'PP' ? 'RR' : typ,
+      audio: f, correct: pairs[hit.no][hit.side], foil: pairs[hit.no][foilSide] };
+  }
+  const complete = Object.keys(items).filter(n => Object.keys(items[n]).length === 3).map(Number);
+  return { items, complete, problems };
+}
+
+// One 120-trial list for one participant number
+function buildList(parsed, pid, perType, seed) {
+  const rng = mulberry32(hashSeed(seed + '-' + pid));
+  const { items, complete } = parsed;
+  perType = Math.min(perType, complete.length);
+  const uses = {}; complete.forEach(n => uses[n] = 0);
+  const trials = [];
+  for (const typ of shuffle(['PP', 'SR', 'OR'], rng)) {
+    // take the pairs used least so far (stable sort keeps the random order among ties)
+    const pick = shuffle([...complete], rng).sort((a, b) => uses[a] - uses[b]).slice(0, perType);
+    pick.forEach(n => uses[n]++);
+    const pos = shuffle(Array.from({ length: perType }, (_, i) => i % 2 ? 'R' : 'L'), rng);  // 50/50 left/right
+    pick.forEach((n, i) => {
+      const it = items[n][typ];
+      const L = pos[i] === 'L';
+      trials.push({ pair: n, structure: it.structure, audio: encodeURI(AUDIO_FOLDER) + encodeURIComponent(it.audio),
+        pic_left_file:  L ? it.correct : it.foil,  pic_right_file: L ? it.foil : it.correct,
+        pic_left:  encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.correct : it.foil),
+        pic_right: encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.foil : it.correct),
+        correct_response: L ? 'ArrowLeft' : 'ArrowRight', audio_file: it.audio });
+    });
+  }
+  for (let k = 0; k < 2000; k++) {                      // shuffle, no same pair back-to-back
+    shuffle(trials, rng);
+    if (trials.every((t, i) => i === 0 || t.pair !== trials[i - 1].pair)) break;
+  }
+  trials.forEach((t, i) => { t.trial = i + 1; t.block = Math.floor(i / BLOCK_SIZE) + 1; });
+  return trials;
+}
+/* END LOGIC */
+
+(async function main() {
+  const params = new URLSearchParams(window.location.search);
+  // Testing switches:  ?nosave=1  (do not send data to DataPipe)   ?p=test1  (fixed list)   ?debug=1  (stimulus check screen)
+  const NOSAVE = params.get('nosave') === '1';
+
+  const files = await fetch('stimuli/stimuli.json').then(r => r.json());
+  const parsed = parseStimuli(files);
+  if (parsed.problems.length) console.warn('Stimulus problems:\n' + parsed.problems.join('\n'));
+  if (parsed.complete.length < 2) {
+    document.body.innerHTML = '<p>No stimuli found. Check stimuli.json and the audio/ and img/ folders.</p>';
+    return;
+  }
+  if (parsed.complete.length < 2 * TRIALS_PER_STRUCTURE)
+    console.warn(parsed.complete.length + ' complete pairs; some pairs will appear in two structures.');
+
+  // jsPsych + DataPipe (saves one CSV per participant to your Google Drive when the experiment ends)
+  const initOptions = {
+    on_finish: function () {
+      if (NOSAVE) jsPsych.data.displayData();
+      else document.body.innerHTML = '<p style="text-align:center;margin-top:80px">Thank you! You may now close this window.</p>';
+    }
+  };
+  if (!NOSAVE) {
+    initOptions.extensions = [{
+      type: jsPsychExtensionPipe,
+      params: { experiment_id: DATAPIPE_ID, filename: function () { return subject_id + '.csv'; } }
+    }];
+  }
+  const jsPsych = initJsPsych(initOptions);
+  var subject_id = jsPsych.randomization.randomID(10);
+  jsPsych.data.addProperties({ subject_id: subject_id });
+
+  // This participant's list is generated from their random ID (or from ?p= when testing)
+  const PID = params.get('p') || subject_id;
+  const LIST = buildList(parsed, PID, TRIALS_PER_STRUCTURE, LIST_SEED);
+
+  const timeline = [];
+
+  timeline.push({
+    type: jsPsychPreload,
+    audio: [...new Set(LIST.map(t => t.audio))],
+    images: [...new Set(LIST.flatMap(t => [t.pic_left, t.pic_right]))],
+    continue_after_error: true, max_load_time: 180000,
+    message: '<p>Loading...</p>'
+  });
+
+  if (params.get('debug') === '1') {            // researcher view:  ...?p=1&debug=1
+    const n = {}; LIST.forEach(t => n[t.structure] = (n[t.structure] || 0) + 1);
+    timeline.push({
+      type: jsPsychHtmlKeyboardResponse, choices: [' '],
+      stimulus: `<div class="report"><h3>Stimulus check (list ${PID})</h3>
+        <p>${files.audio.length} audio files, ${files.images.length} images, ${parsed.complete.length} complete pairs.
+        Trials: ${LIST.length} (${JSON.stringify(n)})</p>
+        <p><b>${parsed.problems.length} problems</b> (pairs with a problem are left out):</p>
+        <pre>${parsed.problems.slice(0, 30).join('\n') || 'none'}</pre><p>Press SPACE to continue.</p></div>`
+    });
+  }
+
+  timeline.push({
+    type: jsPsychHtmlKeyboardResponse, choices: [' '],
+    stimulus: `<div class="instr">
+      <p><b>Instructions.</b> In each trial you will hear a phrase in Spanish and see two pictures.
+      Choose the picture that matches the phrase: press the <b>left arrow ←</b> for the picture on the left,
+      or the <b>right arrow →</b> for the picture on the right. Respond as quickly and accurately as you can.
+      Each trial starts when you press the space bar.</p>
+      <p>Press the space bar to begin.</p></div>`
+  });
+
+  LIST.forEach((t, i) => {
+    timeline.push({
+      type: jsPsychHtmlKeyboardResponse, choices: [' '],
+      stimulus: '<p style="font-size:28px">+</p><p>Press the space bar to start the next trial</p>',
+      data: { task: 'start_screen' }
+    });
+    timeline.push({
+      type: jsPsychAudioKeyboardResponse,
+      stimulus: t.audio,
+      choices: ['ArrowLeft', 'ArrowRight'],
+      response_allowed_while_playing: RESPONSE_ALLOWED_WHILE_PLAYING,
+      prompt: `<div class="pics"><img src="${t.pic_left}" style="width:${IMG_WIDTH}px">
+               <img src="${t.pic_right}" style="width:${IMG_WIDTH}px"></div>`,
+      data: { task: 'test', participant: PID, trial: t.trial, block: t.block, structure: t.structure,
+              pair: t.pair, audio: t.audio_file, pic_left: t.pic_left_file,
+              pic_right: t.pic_right_file, correct_response: t.correct_response },
+      on_finish: d => {
+        d.correct = (d.response !== null && d.response.toLowerCase() === d.correct_response.toLowerCase()) ? 1 : 0;
+      }
+    });
+    if ((i + 1) % BLOCK_SIZE === 0 && i + 1 < LIST.length) {
+      timeline.push({
+        type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'break' },
+        stimulus: '<p>Optional break.</p><p>Press the space bar to continue.</p>'
+      });
+    }
+  });
+
+  timeline.push({
+    type: jsPsychHtmlKeyboardResponse, choices: [' '],
+    stimulus: '<p>End of the experiment. Thank you!</p><p>Press the space bar to finish. Please wait until the next screen appears before closing this window.</p>'
+  });
+
+  jsPsych.run(timeline);
+})();
+</script>
+</body>
+</html>
