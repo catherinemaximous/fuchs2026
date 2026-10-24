@@ -239,7 +239,8 @@
   "SR_zorro_cubre_cordero.wav",
   "SR_zorro_escucha_gato.wav",
   "SR_zorro_rasca_tigre.wav",
-  "SR_zorro_sigue_canguro.wav"
+  "SR_zorro_sigue_canguro.wav",
+  "silence.wav"
  ],
  "images": [
   "01L_gato_lame_elefante.jpg",
@@ -314,7 +315,7 @@
   "35R_tortuga_sigue_gato.jpg",
   "36L_tigre_mira_puerco.jpg",
   "36R_puerco_mira_tigre.jpg",
-  "37L_leon_escucha_hipopotatmo.jpg",
+  "37L_leon_oye_hipopotamo.jpg",
   "37R_hipopotamo_oye_leon.jpg",
   "38L_mono_despierta_buho.jpg",
   "38R_buho_despierta_mono.jpg",
@@ -368,6 +369,7 @@
   "62R_tigre_besa_toro.jpg",
   "63L_pato_agarra_leon.jpg",
   "63R_leon_agarra_pato.jpg",
+  "64L_pollo_lame_mono.jpg",
   "64R_mono_lame_pollo.jpg",
   "65L_rana_pinta_jirafa.jpg",
   "65R_jirafa_pinta_rana.jpg",
@@ -400,6 +402,7 @@
   "79L_oso_oye_canguru.jpg",
   "79R_canguru_oye_oso.jpg",
   "80L_pajaro_despierta_cordero.jpg",
-  "80R_cordero_despierta_pajaro.jpg"
+  "80R_cordero_despierta_pajaro.jpg",
+  "template.jpg"
  ]
 }

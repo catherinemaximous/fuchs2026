@@ -21,6 +21,7 @@
 /* =====================  SETTINGS  ===================== */
 const BLOCK_SIZE = 30;                          // optional break after every 30 trials
 const TRIALS_PER_STRUCTURE = 40;                // 40 RR + 40 SR + 40 OR = 120 trials
+const MAX_SIDE_RUN = 2;                         // correct answer never on the same side more than 2 trials in a row
 const RESPONSE_ALLOWED_WHILE_PLAYING = false;   // paper does not say; decide and report
 const IMG_WIDTH = 380;
 const LIST_SEED = 1;                            // each participant's list is drawn from LIST_SEED + their random ID
@@ -76,7 +77,30 @@ function parseStimuli(files) {
   return { items, complete, problems };
 }
 
-// One 120-trial list for one participant number
+// Assign the correct-answer side (L/R) along the trial sequence:
+// exactly half L / half R within each structure, and never more than maxRun in a row on the same side.
+function assignSides(seq, rng, maxRun) {
+  const cnt = {}; seq.forEach(x => cnt[x] = (cnt[x] || 0) + 1);
+  const cap = {}; for (const x in cnt) cap[x] = { L: Math.ceil(cnt[x] / 2), R: Math.floor(cnt[x] / 2) };
+  const out = new Array(seq.length);
+  let steps = 0;
+  function go(i) {
+    if (i === seq.length) return true;
+    if (++steps > 20000) return false;
+    for (const side of (rng() < 0.5 ? ['L', 'R'] : ['R', 'L'])) {
+      if (cap[seq[i]][side] === 0) continue;
+      let run = 0; for (let k = i - 1; k >= 0 && out[k] === side && run < maxRun; k--) run++;
+      if (run >= maxRun) continue;                      // would make maxRun+1 in a row
+      out[i] = side; cap[seq[i]][side]--;
+      if (go(i + 1)) return true;
+      cap[seq[i]][side]++;
+    }
+    return false;
+  }
+  return go(0) ? out : null;
+}
+
+// One 120-trial list for one participant
 function buildList(parsed, pid, perType, seed) {
   const rng = mulberry32(hashSeed(seed + '-' + pid));
   const { items, complete } = parsed;
@@ -86,23 +110,33 @@ function buildList(parsed, pid, perType, seed) {
   for (const typ of shuffle(['PP', 'SR', 'OR'], rng)) {
     // take the pairs used least so far (stable sort keeps the random order among ties)
     const pick = shuffle([...complete], rng).sort((a, b) => uses[a] - uses[b]).slice(0, perType);
-    pick.forEach(n => uses[n]++);
-    const pos = shuffle(Array.from({ length: perType }, (_, i) => i % 2 ? 'R' : 'L'), rng);  // 50/50 left/right
-    pick.forEach((n, i) => {
-      const it = items[n][typ];
-      const L = pos[i] === 'L';
-      trials.push({ pair: n, structure: it.structure, audio: encodeURI(AUDIO_FOLDER) + encodeURIComponent(it.audio),
-        pic_left_file:  L ? it.correct : it.foil,  pic_right_file: L ? it.foil : it.correct,
-        pic_left:  encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.correct : it.foil),
-        pic_right: encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.foil : it.correct),
-        correct_response: L ? 'ArrowLeft' : 'ArrowRight', audio_file: it.audio });
-    });
+    pick.forEach(n => { uses[n]++; trials.push({ pair: n, typ, structure: items[n][typ].structure }); });
   }
-  for (let k = 0; k < 2000; k++) {                      // shuffle, no same pair back-to-back
-    shuffle(trials, rng);
-    if (trials.every((t, i) => i === 0 || t.pair !== trials[i - 1].pair)) break;
+  // trial order: no same pair back-to-back; then correct-answer sides with no long runs
+  let sides = null;
+  for (let k = 0; k < 500 && !sides; k++) {
+    for (let j = 0; j < 2000; j++) {
+      shuffle(trials, rng);
+      if (trials.every((t, i) => i === 0 || t.pair !== trials[i - 1].pair)) break;
+    }
+    sides = assignSides(trials.map(t => t.structure), rng, MAX_SIDE_RUN);
   }
-  trials.forEach((t, i) => { t.trial = i + 1; t.block = Math.floor(i / BLOCK_SIZE) + 1; });
+  if (!sides) {                                         // should not happen; fall back to plain 50/50 per structure
+    console.warn('Could not satisfy the side-run limit; using plain 50/50 sides.');
+    const by = {}; sides = [];
+    trials.forEach((t, i) => { (by[t.structure] = by[t.structure] || []).push(i); });
+    for (const x in by) shuffle(by[x], rng).forEach((idx, j) => sides[idx] = j % 2 ? 'R' : 'L');
+  }
+  trials.forEach((t, i) => {
+    const it = items[t.pair][t.typ], L = sides[i] === 'L';
+    Object.assign(t, {
+      audio: encodeURI(AUDIO_FOLDER) + encodeURIComponent(it.audio),
+      pic_left_file: L ? it.correct : it.foil, pic_right_file: L ? it.foil : it.correct,
+      pic_left:  encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.correct : it.foil),
+      pic_right: encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.foil : it.correct),
+      correct_response: L ? 'ArrowLeft' : 'ArrowRight', audio_file: it.audio,
+      trial: i + 1, block: Math.floor(i / BLOCK_SIZE) + 1 });
+  });
   return trials;
 }
 /* END LOGIC */
