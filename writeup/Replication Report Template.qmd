@@ -10,8 +10,8 @@ format:
 
 <!-- Replication reports should all use this template to standardize reporting across projects.  These reports will be public supplementary materials that accompany the summary report(s) of the aggregate results. -->
 
-[No abstract is needed.]  Each replication project will have a straightforward, no frills report of the study and results.  These reports will be publicly available as supplementary material for the aggregate report(s) of the project as a whole.  Also, to maximize project integrity, the intro and methods will be written and critiqued in advance of data collection.  Introductions can be just 1-2 paragraphs clarifying the main idea of the original study, the target finding for replication, and any other essential information. You will likely contact the authors of the original study, so this should be professional and forward facing. It will NOT have a literature review -- that is in the original publication. You can write both the introduction and the methods in past tense.  
-##Revised Proposal 
+
+## Revised Proposal 
 
 My initial proposal was to replicate Bosker et al. (2014)'s paper on native and non-native disfluencies. However, after receiving valuable feedback and talking to Haoyu about the feasibility of the project, I decided to pursue another replication project that can fit better within the scope of the course. Due to the time constraints of having to replicate, collect data, and analyze the project within one quarter, I may not be able to create all the materials needed on time. For example, the study uses Dutch audio recordings and words while I would have to use English to be able to recruit participants. I would also need to match the frequency, target onset times, and reaction times for each English target. Additionally, the experiment's main findings were from eye-tracking rather than the reaction time. Below is my new proposal with a paper that does a behvaioral study and has open source materials to ensure better replication.
 
@@ -27,8 +27,7 @@ I am proposing a new project proposal, where I would like to further explore her
 
 To conduct this experiment, I will be implementing the experimental design from Fuchs and colleagues' (2026) design. Participants will hear a short Spanish phrase containing a relative clause and are instructed to select the picture that correctly matches the described event. Each trial will display two images depicting reversed agent-patient roles (e.g., a bear painting a tiger vs. a tiger painting a bear). The auditory stimuli will follow the structure of Article + Nouns + Relative Clause. As the task progresses, syntactic complexity will increase by using three types of relative clauses: Reduced Relatives, Subject Relative, and Object Relatives. All materials for this experiment has been provided through the OSF repository: https://osf.io/etprk/files/osfstorage?view_only=19f67921b4eb4ab58299685068ac0a16 along with analysis materials ensuring better replication of the experiment. 
 
-The paper recruited 31 heritage Spanish speakers, who were born and raised in the U.S. or immigrated by age 6 and reported speaking Spanish with one or both parents. They also report English to be their most dominant language but having acquired Spanish since birth. Ensuring that I am recruiting the correct population and including the same criteria as the researchers will be the most important and challenging part of the project. This is because it will restrict the availability of people I can recruit from SONA but will be the most fitting to what the study tested. To do so, I will include similar language history questionnaires as the paper, the Bilingual Language Profile (BLP) and additional questions from  the Language Experience and Proficiency Questionnaire(LEAP-Q). Additionally, the organization and coding of the experiment on JavaScript will also be another learning challenge since participants completed 120 picture-matching trials so it is a substantive amount of images and audios to be coded. I would also like to extend this study by including variations of heritage speakers. The study categorized heritage speakers as those who report speaking Spanish with one or more parent and were born and raised in the U.S. or immigrated at the age of 6 or younger. All of the heritage speakers' report English dominance as they experience reduced Spanish input in an English dominant environment (U.S.). However, the study does not reveal variations within the heritage speakers' themselves and how those who more production experience may differ than those with limited production abilities but tends to be better at comprehension. This way I will be testing out to what extent does proficiency and immersion in the heritage language moderate the relative-clause complexity effect that the authors report for the heritage speakers. 
-
+The paper recruited 31 heritage Spanish speakers, who were born and raised in the U.S. or immigrated by age 6 and reported speaking Spanish with one or both parents. They also report English to be their most dominant language but having acquired Spanish since birth. Ensuring that I am recruiting the correct population and including the same criteria as the researchers will be the most important and challenging part of the project. This is because it will restrict the availability of people I can recruit from SONA but will be the most fitting to what the study tested. To do so, I will include similar language history questionnaires as the paper, the Bilingual Language Profile (BLP) and additional questions from  the Language Experience and Proficiency Questionnaire (LEAP-Q). Additionally, the organization and coding of the experiment on JavaScript will also be another learning challenge since participants completed 120 picture-matching trials so it is a substantive amount of images and audios to be coded. I would also like to extend this study by including variations of heritage speakers. The study categorized heritage speakers as those who report speaking Spanish with one or more parent and were born and raised in the U.S. or immigrated at the age of 6 or younger. All of the heritage speakers' report English dominance as they experience reduced Spanish input in an English dominant environment (U.S.). However, the study does not reveal variations within the heritage speakers' themselves and how those who more production experience may differ than those with limited production abilities but tends to be better at comprehension. This way I will be testing out to what extent does proficiency and immersion in the heritage language moderate the relative-clause complexity effect that the authors report for the heritage speakers. 
 
 ## Learning Goals
 
@@ -40,36 +39,97 @@ I am hoping through this project, to learn how to build a task through jsPsych t
 Original effect size, power analysis for samples to achieve 80%, 90%, 95% power to detect that effect size.  Considerations of feasibility for selecting planned sample size.
 
 ### Planned Sample
-
 Planned sample size and/or termination rule, sampling frame, known demographics if any, preselection rules if any.
+
+The planned study will collect heritage Spanish-English bilinguals and Second language learners of Spanish from the SONA participant pool. This pool will contain college students, aged 18 years or older. 
+
+Data exclusions will be applied to any participants that have Spanish listed as their native language and have grown up in a Spanish dominant environment past childhood. Any participants that score low on the RR RC-type will be excluded as that will be indication of not understanding the task or not paying attention. Reaction time will be excluded as well however different from the original paper, since reaction time on JsPsych begins at the onset of audio. Reaction time faster than 150 ms will be excluded and slower than 10000 after audio offset will be excluded.
 
 ### Materials
 
 All materials - can quote directly from original article - just put the text in quotations and note that this was followed precisely.  Or, quote directly and just point out exceptions to what was described in the original article.
 
-### Procedure	
+Picture-Matching Task: 
 
+Fuchs and colleagues (2026) tested whether heritage speakers' relative amount of cognitive effort required for Spanish language processing. To do so, they recruited two additional  populations for comparison against heritage speakers: Spanish-raised bilinguals (SRBs) and late second-language learners (English-rasied bilinguals, ERBs). The study consisted of three different tasks, a single picture-matching task, a non-linguistic task, and a dual-task combining the linguistic and non-linguistic task. For the purpose of this replication project, I will be replicating the linguistic task: A picture-matching task where "participants matched candidate images with auditorily presented linguistic stimuli" The linguistic picture-matching task contained 120 trials which had "120 trials. These were all Spanish phrases, heard in the presence of two images." Additionally, "The phrase was always of the form ARTICLE + NOUN + RELATIVE CLAUSE. Phrase difficulty was manipulated by increasing the complexity of relative clauses, from Reduced Relative (RR) to Subject Relative (SR) to Object Relative (OR), as illustrated in (1).
+(1) RR: el oso pintando el tigre 
+“the bear painting the tiger”
+SR: el oso que pinta al tigre 
+“the bear that is painting the tiger”
+OR: elosoal quepinta el tigre 
+“the bear that the tiger is painting”
+
+Listeners are asked to match the phrase they heard to the correct image by either selecting left-arrow for the left image or right-arrow for the right image. "There were 20 total animals and 20 action verbs combined to create 80 different animal-action pairs. Audio stimuli for the task were recorded in a sound-isolated booth by a first-language speaker of Spanish with a Mexican dialect. All audio was recorded at 44.1 kHz and presented monaurally using speakers; the average acoustic intensity of the final 240 audio stimuli was 0.004 mean squared amplitude (SD = 0.00001) (equivalent to 24.1 decibels relative to full scale)." 
+
+Additionally the picture-matching task "were blocked into sections of 30 trials, with an optional break between each block. Instructions for the two single tasks were provided at the onset of the experiment."
+
+The study does not mention how many sentence structures are shown per trial but since the materials include 40 RR, 40 SR, and 40 OR audio files, it will be split across 4 sections of 30 trials and no audio will be repeated. This ensures that all participants have been exposed to the same conditions however order of trials will be randomized across each participant. 
+
+Language-history questionnaire:
+
+To characterize the population, prior to the task, participants will receive a language background questionnaire. The paper states that they used a "a pen-and-paper version ofthe Bilingual Language Profile (BLP) (Birdsong et al., 2012) and an additional brief questionnaire consisting of selected questions from the Language Experience and Proficiency Questionnaire(LEAP-Q)(Kaushanskaya
+et al., 2020; Marian et al., 2007)." However, due to this experiment using JsPysch, the questionnaire will be administered online. The important questions to assess heritage speakers of Spanish in this study is including questions regarding age of language acquisition for Spanish and English and place of birth/time of immigration. Heritage speakers are characterized as have acquired the heritage language at birth and English later (first year of schooling) and were born and raised in the US or immigrated to the US prior to or at the age of 6. Second language learners of Spanish are those who have enrolled in Spanish courses in high school or University. 
+
+### Procedure	
 Can quote directly from original article - just put the text in quotations and note that this was followed precisely.  Or, quote directly and just point out exceptions to what was described in the original article.
+
+This study was administered in a "private space and followed the same procedure. Participants first gave informed consent for participation in the study. They then completed the Flanker task and the receptive vocabulary task. Following this, they completed the main experimental task, which consisted of blocked single-task trials and then blocked dual-task trials. Within each block, participants initiated each trial with a key press, meaning inter-stimulus intervals were self-timed; breaks between experimental blocks were explicitly signaled and self-timed." The study was also completed on a laptop in the laboratory  and ended the experiment with completing the language background questionnaire on paper. All participants were university students.
+
+Difference: In this study, it will be completed fully online and administered through SONA: online experiment and subject pool management software. The questionnaire and linguistic task are designed and administered through JsPsych. Participants will receive compensation in the form of SONA credits which can be applied as extra-credit for their applicable university courses. 
+
+Participants will first completed a language-history questionnaire then directed to the picture-matching task in which all instructions will be given on the screen. An audio check is added to ensure participants can properly hear the audios. 
+
 
 ### Analysis Plan
 
 Can also quote directly, though it is less often spelled out effectively for an analysis strategy section.  The key is to report an analysis strategy that is as close to the original - data cleaning rules, data exclusion rules, covariates, etc. - as possible.  
 
+In this study, the authors "took a general mixed effects modelin gapproach for analysis. All
+data were processed and analyzed in R Version 4.2.1(R CoreTeam, 2021) using the lme4 package (Bates et al., 2015). For each analysis,the maximal random effect structure supported by the data was included; if a model including random slopes and intercepts did not converge, the random effects structure was reduced until convergence was reached. Random intercepts grouped by participant were prioritized over random intercepts grouped by item when a model with both of these did not converge, to account for typically larger by-participant than by-item variation (Sonderegger, 2023)." This is to check if the difficulty manipulation worked and that performance on OR will show less accurate responses compared to the other two sentence structures. 
+
+For the picture-matching task, "responses faster than 150 ms and outside of two standard deviations of the mean (grouped by participant and by relative clause type) were excluded
+from analysis, removing 2.8% of the data, at approximately equal rates across the three groups and across conditions within each group."
+
+The planned confirmatory test for this will be a logistic mixed-effects regression on trial-level accuracy that compares the performance on the RC-type conditions. This can be one with a Wald z-test on each condition across the heritage speakers. Specifically comparing SR vs. OR type, if coefficient is 0, then there was no accuracy different between the two. If coefficient is positive and significant then SR is more accurate than OR which replicates the findings of the original paper. 
+
 **Clarify key analysis of interest here**  You can also pre-specify additional analyses you plan to do.
 
-### Differences from Original Study
+The key analysis of interest here is performance on the RC type specifically looking at the difference of performance between SRs and ORs. This is because the original study found a significant effect of RC type on SRs than ORs  (β=3.27,SE=0.07,z=44.14,p<0.001). Similar to the original paper, I will use a "logistic mixed effects regression model was fitted to
+the data,predicting log-odds of the probability of a correct response
+by group,RC type and their interaction,as well as random intercepts grouped by item (models with random effects grouped by
+participant did not converge)."
 
+For this study, I will implement a similar analysis plan with a focus on RC-type slopes and by-item random intercepts. If enough data collected across different participants groups, then another analysis by participant type will also be conducted. 
+
+### Differences from Original Study
 Explicitly describe known differences in sample, setting, procedure, and analysis plan from original study.  The goal, of course, is to minimize those differences, but differences will inevitably occur.  Also, note whether such differences are anticipated to make a difference based on claims in the original article or subsequent published research on the conditions for obtaining the effect.
+
+The known differences from the original study is first the procedure. In the original study, participants first completed a receptive vocabulary task prior to the picture-matching task to ensure their familiarity with all items. However, in this replication, participants will be assumed to have enough Spanish knowledge to recognize all items. Additionally, since the original study reported that all participants scored high, this will be considered the norming of the items used to test a broader population. 
+
+The entire study will also be administered online through SONA and using JsPsych and hosted on GitHub Pages. This is different as the original study was conducted in the lab. To control for any environmental noise, audio checks and attention checks will be added.
+
+The heritage Spanish-English population should be a similar sample to the one in the original study however recruiting second-language Spanish learners will be more broad and not from students who are currently enrolled in university-level courses in Spanish. 
+
+Additionally, participants will not be given the flanker task prior to the picture-matching task and instead of completing the questionnaire at the end of the experiment, they will be completing it in the beginning prior to the task. This is to ensure that participants' answers on the proficiency questions are not influenced by their performance on the task. 
+
+The analysis plan and exclusion criteria will look different since I do not have three different types of group and will look at the RC-type group instead. Additionally, on JsPsych reaction time will start from the onset of the audio to the response therefore my exclusion for reaction time should be different. Reaction time will be measured by the onset to the end of the audio. Any participants that score low on the RR condition will also be excluded as it is considered the baseline and means that participant did not understand the task or is not paying attention. 
+
+The study's main research question was to test whether heritage speakers' of Spanish are engaging in more cognitive effort when they are required to process language in Spanish. They tested this by comparing them to two other groups and in a dual-task that includes both a linguisitc and non-linguistic task. However, the purpose of this replication is to test the claim of relative-clause processing and comprehension in heritage speakers and how there is an asymmetry between SRs and ORs due to what has been identified in the literature as a hierarchy of processing difficulty. If processing cost is greater for object-extracted relative clauses for the heritage speakers of this sample, I should be able to replicate the findings of the original study. 
+
+I do not believe there are any major differences between my replication and the original paper as I am using the same type of stimuli all provided by the authors of the original paper. However, since I do not have the same group of participants, comparisons across groups will not look the same and my analysis will rely more on the accuracy across the RC-type condition. This is still an important test because the main claim of the paper is with increase syntactic complexity, the more cognitive resources that will be employed leading to a lower performance on the dual-task conducted later in the paper.
+
 
 ### Methods Addendum (Post Data Collection)
 
 You can comment this section out prior to final report with data collection.
 
 #### Actual Sample
-  Sample size, demographics, data exclusions based on rules spelled out in analysis plan
+Sample size, demographics, data exclusions based on rules spelled out in analysis plan
+
 
 #### Differences from pre-data collection methods plan
-  Any differences from what was described as the original plan, or “none”.
+
+Any differences from what was described as the original plan, or “none”.
 
 
 ## Results
