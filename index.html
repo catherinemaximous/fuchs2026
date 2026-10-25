@@ -244,7 +244,7 @@ function buildQuestionnaire() {
     pages.push({
       type: jsPsychSurveyHtmlForm,
       button_label: 'Continue',
-      html: `<div class="survey"><h3>Language background questionnaire (${page} of ${N_QPAGES})</h3>${intro ? `<p class="hint">${intro}</p>` : ''}<h4>${title}</h4>${body}</div>`,
+      html: `<div class="survey"><h3>Language History Questionnaire (${page} of ${N_QPAGES})</h3><p class="hint">Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>${intro ? `<p class="hint">${intro}</p>` : ''}${title ? `<h4>${title}</h4>` : ''}${body}</div>`,
       data: { task },
       on_load: onLoad || (() => {})
     });
@@ -266,7 +266,7 @@ function buildQuestionnaire() {
     question('Current place of residence', 'City/state: <input type="text" name="residence_city_state" required maxlength="60"> &nbsp; Country: <input type="text" name="residence_country" required maxlength="60">') +
     question('Highest level of formal education', selectHtml('education', [['less_than_hs', 'Less than high school'], ['high_school', 'High school'], ['some_college', 'Some college'],
       ['college', 'College (B.A., B.S.)'], ['some_grad', 'Some graduate school'], ['masters', 'Masters'], ['phd_md_jd', 'PhD/MD/JD'], ['other', 'Other']])),
-    null, 'Bilingual Language Profile (BLP): this is not a test, so there are no right or wrong answers. Please answer every question and give your answers sincerely.');
+    null, 'This is not a test. Please answer every question.');
 
   // ---- BLP II. Language history ----
   add('blp_history', 'II. Language history',
@@ -306,7 +306,7 @@ function buildQuestionnaire() {
   const ACCENT = ['None', 'Almost none', 'Very light', 'Light', 'Some', 'Moderate', 'Considerable', 'Heavy', 'Very heavy', 'Extremely heavy', 'Pervasive'];
   const NONNATIVE = ['Never', 'Almost never', '', '', '', 'Half of the time', '', '', '', '', 'Always'];
   const textRow = (id, n) => range(1, n).map(i => `<input type="text" name="${id}_${i}" ${i === 1 ? 'required' : ''} size="14" maxlength="40" placeholder="${i}">`).join(' ');
-  add('aq_languages', 'Additional questions: languages and exposure',
+  add('aq_languages', 'Languages and exposure',
     question('(1) Please list all the languages you know <b>in order of dominance</b>:', textRow('aq_dominance', 5)) +
     question('(2) Please list all the languages you know <b>in order of acquisition</b> (your native language first):', textRow('aq_acquisition', 5)) +
     question('(3) Please list what percentage of the time you are <i>currently</i> and <i>on average</i> exposed to each language.', pairGroup('aq_exposure', 5), 'Your percentages should add up to 100%.') +
@@ -318,7 +318,7 @@ function buildQuestionnaire() {
 
   // ---- Additional questions: self-reported comprehension ----
   const HL = null;   // no extra note needed: the questions now say 'Spanish'
-  add('aq_comprehension1', 'Self-reported comprehension',
+  add('aq_comprehension1', 'The following questions will ask about your experience with understanding Spanish.',
     question('1. How much Spanish do you understand when people speak to you?', radioList('comp_understand_amount',
       [['everything', 'Everything'], ['most', 'Most of it (80–90%)'], ['general_idea', 'General idea (60–70%)'], ['some_words', 'Some words (~25%)'], ['nothing', 'Nothing']])) +
     question('2. How often can you understand the main topic of a conversation in Spanish?', radioList('comp_main_topic', LIKERT)) +
@@ -328,7 +328,7 @@ function buildQuestionnaire() {
     question('6. Can you usually tell whether someone is asking a question or making a statement?', radioList('comp_question_statement', LIKERT)),
     null, HL);
 
-  add('aq_comprehension2', 'Self-reported comprehension (continued)',
+  add('aq_comprehension2', '',
     question('7. Can you understand Spanish better when:', checkList('comp_better', ['The speaker is a family member', 'The topic is familiar', 'The speech is slow', 'You can see the speaker’s gestures', 'You are in a familiar setting']), 'Select all that apply.') +
     question('8. How often can you translate what you hear into English?', radioList('comp_translate', LIKERT)) +
     question('9. Compared to speaking Spanish, listening to Spanish feels…', checkList('comp_listening', ['Easier', 'More comfortable', 'Less stressful', 'More familiar', 'About the same', 'Harder']), 'Select all that apply.') +
@@ -350,20 +350,20 @@ function buildQuestionnaire() {
     attachSiblingToggle, HL);
 
   // ---- Additional questions: production ----
-  add('aq_production', 'Production ability (productive skills)',
+  add('aq_production', 'The following questions will ask about your experience with speaking Spanish.',
     question('1. What can you produce in Spanish?', radioList('prod_can_produce',
       [['full_sentences', 'Full sentences'], ['short_phrases', 'Short phrases'], ['common_expressions', 'Common expressions'], ['single_words', 'Single words'], ['no_speech', 'No speech at all']])) +
     question('2. When you try to speak, which of the following happens?', checkList('prod_try', ['I can say isolated words', 'I can say memorized expressions', 'I mix English with Spanish words', 'I cannot put words together into sentences', 'I avoid speaking because I’m unsure of correctness']), 'Select all that apply.') +
-    question('Production in context: 1. How often do you respond in Spanish when someone speaks to you in Spanish?', radioList('ctx_respond_freq', LIKERT)) +
-    question('2. If you do respond, what form does your response usually take?', radioList('ctx_response_form',
+    question('3. How often do you respond in Spanish when someone speaks to you in Spanish?', radioList('ctx_respond_freq', LIKERT)) +
+    question('4. If you do respond, what form does your response usually take?', radioList('ctx_response_form',
       [['english_only', 'English only'], ['english_with_hl_words', 'English with Spanish words'], ['hl_words_only', 'Spanish words only'], ['hl_phrases', 'Spanish phrases'], ['hl_full_sentences', 'Full Spanish sentences']])),
     null, HL);
 
-  add('aq_production2', 'Production in context (continued)',
-    question('3. How comfortable do you feel speaking Spanish?', radioList('ctx_comfort',
+  add('aq_production2', '',
+    question('5. How comfortable do you feel speaking Spanish?', radioList('ctx_comfort',
       [['very_comfortable', 'Very comfortable'], ['somewhat_comfortable', 'Somewhat comfortable'], ['neutral', 'Neutral'], ['uncomfortable', 'Uncomfortable'], ['do_not_speak', 'I do not speak it']])) +
-    question('4. When I am asked to speak Spanish, I…', checkList('ctx_asked', ['Feel frustrated', 'Feel anxious', 'Feel embarrassed', 'Feel pressured', 'Feel neutral', 'Feel comfortable', 'Avoid speaking', 'Try to speak but struggle', 'Can speak but only with effort', 'Can speak comfortably']), 'Select all that apply.') +
-    question('5. If I am asked to speak Spanish, I often…', checkList('ctx_often', ['Struggle to communicate', 'Produce only isolated words', 'Produce memorized phrases', 'Mix English with Spanish', 'Switch back to English quickly', 'Speak in full sentences', 'Speak fluently']), 'Select all that apply.'),
+    question('6. When I am asked to speak Spanish, I…', checkList('ctx_asked', ['Feel frustrated', 'Feel anxious', 'Feel embarrassed', 'Feel pressured', 'Feel neutral', 'Feel comfortable', 'Avoid speaking', 'Try to speak but struggle', 'Can speak but only with effort', 'Can speak comfortably']), 'Select all that apply.') +
+    question('7. If I am asked to speak Spanish, I often…', checkList('ctx_often', ['Struggle to communicate', 'Produce only isolated words', 'Produce memorized phrases', 'Mix English with Spanish', 'Switch back to English quickly', 'Speak in full sentences', 'Speak fluently']), 'Select all that apply.'),
     null, HL);
   return pages;
 }
@@ -546,9 +546,9 @@ const firstAnimal = file => normTok(file.replace(/^(PP|SR|OR)_/i, '').split('_')
   // ---- questionnaires: BLP, then additional questions ----
   const questionnaireTimeline = [
     { type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'questionnaire_intro' },
-      stimulus: '<div class="instr"><h3>Language background questionnaire</h3>' +
-        '<p>Next are questions about your experience with English, Spanish and any other languages (about 10–15 minutes). ' +
-        'There are no right or wrong answers; please answer every question honestly.</p>' +
+      stimulus: '<div class="instr"><h3>Language History Questionnaire</h3>' +
+        '<p>The following questions are about your language history and experience (about 10–15 minutes). ' +
+        'Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>' +
         '<p><b>Please do not refresh or close this page. If you refresh, you will lose your progress.</b></p>' +
         '<p>Press the space bar to begin.</p></div>' },
     ...buildQuestionnaire()
