@@ -41,7 +41,8 @@ const ADD_SUFFIX = true;                        // file name = ID_xxxxx.csv (ran
 const AUDIO_FOLDER = 'stimuli/Audio files/';    // folders in your GitHub repo (relative to index.html)
 const IMAGE_FOLDER = 'stimuli/Images/';
 const QUESTIONNAIRES_FIRST = true;              // true = questionnaires BEFORE the picture-matching task; false = after it (as in the paper)
-const AUDIO_CHECK_MAX_TRIES = 3;                // audio check: after this many wrong answers the study ends with a message
+const AUDIO_CHECK_MAX_TRIES = 3;                // sound check: each of the 3 checks gets this many attempts (a new phrase each time); then the study ends with a message
+const SOUND_CHECK_MIN_PLAYS = 1;                // how many times a phrase must be played before the question appears (they can always replay it more often)
 // SONA credit link: copy the "completion URL" from your study's page in SONA and paste it here. Keep %SURVEY_CODE% in it, e.g.
 // 'https://YOURSCHOOL.sona-systems.com/webstudy_credit.aspx?experiment_id=123&credit_token=abc123def456&survey_code=%SURVEY_CODE%'
 const SONA_COMPLETION_URL = '';
@@ -373,7 +374,71 @@ function buildQuestionnaire() {
 const ANIMALS = { gato: 'gato', elefante: 'elefante', tigre: 'tigre', oso: 'oso', leon: 'león', pajaro: 'pájaro', mono: 'mono', raton: 'ratón',
   jirafa: 'jirafa', toro: 'toro', pollo: 'pollo', pato: 'pato', rana: 'rana', zorro: 'zorro', tortuga: 'tortuga', puerco: 'puerco',
   cordero: 'cordero', buho: 'búho', canguro: 'canguro', hipopotamo: 'hipopótamo' };
-const firstAnimal = file => normTok(file.replace(/^(PP|SR|OR)_/i, '').split('_')[0]);   // the head noun is always heard first
+// file name -> [first animal, verb, last animal] (the head noun is always heard first, the other noun last)
+const stemTokens = file => file.replace(/^(PP|SR|OR)_/i, '').replace(/\.[^.]+$/, '').split('_').map(normTok);
+
+// One sound-check item. kind: 'first' = which animal was mentioned first, 'last' = which was mentioned last, 'both' = which two animals.
+function makeSoundCheckItem(kind, file, sample, shuffle) {
+  const [head, , other] = stemTokens(file);
+  const animals = Object.keys(ANIMALS), nm = a => ANIMALS[a];
+  let question, options, answer;
+  if (kind === 'first') {
+    question = 'Which animal was mentioned <b>first</b> in the phrase?';
+    answer = head;
+    options = shuffle([head, ...sample(animals.filter(a => a !== head), 3)]).map(a => [a, nm(a)]);
+  } else if (kind === 'last') {
+    question = 'Which animal was mentioned <b>last</b> in the phrase?';
+    answer = other;
+    options = shuffle([other, ...sample(animals.filter(a => a !== other), 3)]).map(a => [a, nm(a)]);
+  } else {
+    question = 'Which <b>two</b> animals were mentioned in the phrase?';
+    const key = (x, y) => [x, y].sort().join('|');
+    const [f1, f2, f3, f4] = sample(animals.filter(a => a !== head && a !== other), 4);
+    answer = key(head, other);
+    options = shuffle([[answer, `${nm(head)} and ${nm(other)}`], [key(head, f1), `${nm(head)} and ${nm(f1)}`],
+                       [key(other, f2), `${nm(other)} and ${nm(f2)}`], [key(f3, f4), `${nm(f3)} and ${nm(f4)}`]]);
+  }
+  options.push(['none', 'I could not hear anything']);
+  return { kind, file, url: encodeURI(AUDIO_FOLDER) + encodeURIComponent(file), question, options, answer };
+}
+
+// The sound-check page: a Play button (as many plays as they like), then "I'm ready to answer" reveals the question.
+const soundCheckHtml = (item, n, total) => `<div class="instr">
+  <h3>Sound check (${n} of ${total})</h3>
+  <p>Click the button to hear a short phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer”.</p>
+  <p><button type="button" id="sc_play" class="jspsych-btn">▶ Play</button> &nbsp; <span id="sc_status" class="hint">Not played yet</span></p>
+  <p><button type="button" id="sc_ready" class="jspsych-btn" disabled>I’m ready to answer</button></p>
+  <div id="sc_q" style="display:none"><p><b>${item.question}</b></p>${radioList('heard', item.options)}</div>
+  <p class="hint">If you cannot hear anything, check that your headphones or speakers are connected, your device is not muted, and the volume is turned up.</p></div>`;
+
+// st = shared state object: st.completed = full plays, st.errors = load errors, st.audio = the Audio element
+function attachSoundCheck(item, st, minPlays) {
+  st.completed = 0; st.errors = 0;
+  const audio = new Audio(item.url); audio.preload = 'auto'; st.audio = audio;
+  const play = document.getElementById('sc_play'), ready = document.getElementById('sc_ready'), status = document.getElementById('sc_status');
+  const q = document.getElementById('sc_q'), radios = q.querySelectorAll('input');
+  const next = document.getElementById('jspsych-survey-html-form-next') || document.querySelector('#jspsych-content input[type=submit]');
+  radios.forEach(r => { r.disabled = true; });         // not answerable (and not validated) until the question is shown
+  if (next) next.disabled = true;
+  const refresh = msg => {
+    status.textContent = msg || (st.completed === 0 ? 'Not played yet' : 'Played ' + st.completed + (st.completed === 1 ? ' time' : ' times'));
+    ready.disabled = st.completed < minPlays;
+  };
+  audio.addEventListener('ended', () => { st.completed++; play.disabled = false; play.textContent = '▶ Play again'; refresh(); });
+  audio.addEventListener('error', () => { st.errors++; play.disabled = false; refresh('The audio could not be loaded. Please check your connection and click Play again.'); });
+  play.addEventListener('click', () => {
+    play.disabled = true; status.textContent = 'Playing...';
+    audio.currentTime = 0;
+    const p = audio.play();
+    if (p && p.catch) p.catch(() => { st.errors++; play.disabled = false; refresh('The audio could not be played. Please check your sound and click Play again.'); });
+  });
+  ready.addEventListener('click', () => {
+    q.style.display = ''; radios.forEach(r => { r.disabled = false; });
+    if (next) next.disabled = false;
+    ready.style.display = 'none';
+  });
+  refresh();
+}
 /* END SURVEYS */
 
 (async function main() {
@@ -439,18 +504,6 @@ const firstAnimal = file => normTok(file.replace(/^(PP|SR|OR)_/i, '').split('_')
   const PER_TYPE = parseInt(params.get('n')) || TRIALS_PER_STRUCTURE;   // ?n=2 gives a quick 6-trial test run
   const LIST = buildList(parsed, PID, PER_TYPE, LIST_SEED);
 
-  // three audio-check clips: stimulus files this participant will NOT hear in the task
-  const usedAudio = new Set(LIST.map(t => t.audio_file));
-  const allAudio = parsed.complete.flatMap(n => Object.values(parsed.items[n])).map(it => it.audio);
-  const spare = allAudio.filter(a => !usedAudio.has(a));
-  const clipFiles = jsPsych.randomization.sampleWithoutReplacement(spare.length >= 3 ? spare : allAudio, 3);
-  const clips = clipFiles.map(f => {
-    const head = firstAnimal(f);
-    const foils = jsPsych.randomization.sampleWithoutReplacement(Object.keys(ANIMALS).filter(a => a !== head), 3);
-    return { file: f, head, url: encodeURI(AUDIO_FOLDER) + encodeURIComponent(f),
-             options: jsPsych.randomization.shuffle([head, ...foils]).map(a => [a, ANIMALS[a]]) };
-  });
-
   const timeline = [];
 
   if (!participantId) {
@@ -475,7 +528,7 @@ const firstAnimal = file => normTok(file.replace(/^(PP|SR|OR)_/i, '').split('_')
 
   timeline.push({
     type: jsPsychPreload,
-    audio: [...new Set([...LIST.map(t => t.audio), ...clips.map(c => c.url)])],
+    audio: [...new Set(LIST.map(t => t.audio))],
     images: [...new Set(LIST.flatMap(t => [t.pic_left, t.pic_right]))],
     continue_after_error: true, max_load_time: 180000,
     message: '<p>Loading... please wait.</p>'
@@ -493,55 +546,69 @@ const firstAnimal = file => normTok(file.replace(/^(PP|SR|OR)_/i, '').split('_')
     });
   }
 
-  // ---- audio check (before anything else the participant has to listen to) ----
-  let audioAttempt = 0, audioPassed = false;
+  // ---- sound check: 3 checks (first animal, last animal, both animals) ----
+  // Each phrase can be played as many times as the participant likes BEFORE the question appears. A wrong answer gives a new phrase
+  // (up to AUDIO_CHECK_MAX_TRIES per check); the phrases are stimulus files this participant will NOT hear in the task.
+  const usedAudio = new Set(LIST.map(t => t.audio_file));
+  const allAudio = parsed.complete.flatMap(n => Object.values(parsed.items[n])).map(it => it.audio);
+  const spare = allAudio.filter(a => !usedAudio.has(a));
+  const SC_KINDS = ['first', 'last', 'both'];
+  const scPool = jsPsych.randomization.shuffle(spare.length >= SC_KINDS.length * AUDIO_CHECK_MAX_TRIES ? spare : allAudio);
+  const scSample = (arr, n) => jsPsych.randomization.sampleWithoutReplacement(arr, n);
+  const scShuffle = arr => jsPsych.randomization.shuffle(arr);
+  const scItems = SC_KINDS.map((kind, ci) => Array.from({ length: AUDIO_CHECK_MAX_TRIES },
+    (_, a) => makeSoundCheckItem(kind, scPool[(ci * AUDIO_CHECK_MAX_TRIES + a) % scPool.length], scSample, scShuffle)));
+  const scState = { completed: 0, errors: 0, audio: null };
+
   timeline.push({
-    timeline: [
-      {
-        type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'audio_check_intro' },
-        stimulus: () => `<div class="instr"><h3>Sound check</h3>
-          <p>This study needs sound. Please put on headphones (recommended), turn your volume up to a comfortable level, and sit somewhere quiet.</p>
-          <p>When you press the space bar you will hear a short phrase in Spanish. Then you will be asked which animal was mentioned <b>first</b>.</p>
-          <p><b>Please do not refresh or close this page during the study. If you refresh, you will lose your progress.</b></p>
-          <p>Press the space bar to play the phrase${audioAttempt > 0 ? ' again' : ''}.</p></div>`
-      },
-      {
-        type: jsPsychAudioKeyboardResponse, choices: 'NO_KEYS', trial_ends_after_audio: true, data: { task: 'audio_check_play' },
-        stimulus: () => clips[audioAttempt].url,
-        prompt: '<p style="font-size:22px">🔊 Playing...</p>'
-      },
-      {
-        type: jsPsychSurveyHtmlForm, button_label: 'Submit', data: { task: 'audio_check' },
-        html: () => `<div class="instr"><p>Which animal was mentioned <b>first</b> in the phrase you just heard?</p>` +
-          radioList('heard', [...clips[audioAttempt].options, ['none', 'I could not hear anything']]) + '</div>',
-        on_finish: d => {
-          const c = clips[audioAttempt];
-          audioPassed = d.response.heard === c.head;
-          d.audio_check_passed = audioPassed ? 1 : 0; d.audio_clip = c.file; d.audio_attempt = audioAttempt + 1;
-          audioAttempt++;
+    type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'sound_check_intro' },
+    stimulus: `<div class="instr"><h3>Sound check</h3>
+      <p>This study needs sound. Please put on headphones (recommended), turn your volume up to a comfortable level, and sit somewhere quiet.</p>
+      <p>You will do ${SC_KINDS.length} short sound checks. In each one, click the <b>Play</b> button to hear a phrase in Spanish. You can play it as many times as you like, and then answer a question about what you heard.</p>
+      <p><b>Please do not refresh or close this page during the study. If you refresh, you will lose your progress.</b></p>
+      <p>Press the space bar to begin.</p></div>`
+  });
+  SC_KINDS.forEach((kind, ci) => {
+    const st = { attempt: 0, passed: false };
+    timeline.push({
+      timeline: [
+        {
+          type: jsPsychSurveyHtmlForm, button_label: 'Submit answer', data: { task: 'sound_check', check: kind },
+          html: () => soundCheckHtml(scItems[ci][st.attempt], ci + 1, SC_KINDS.length),
+          on_load: () => attachSoundCheck(scItems[ci][st.attempt], scState, SOUND_CHECK_MIN_PLAYS),
+          on_finish: d => {
+            const it = scItems[ci][st.attempt];
+            if (scState.audio) scState.audio.pause();
+            st.passed = (d.response || {}).heard === it.answer;
+            d.sound_check_passed = st.passed ? 1 : 0; d.sound_clip = it.file; d.sound_attempt = st.attempt + 1;
+            d.sound_plays = scState.completed; d.sound_load_errors = scState.errors;
+            st.attempt++;
+          }
+        },
+        {
+          timeline: [{ type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'sound_check_retry' },
+            stimulus: '<div class="instr"><p>That was not the right answer, so we could not confirm that you can hear the audio clearly.</p>' +
+              '<p>Please check that your headphones or speakers are connected, that your device is not muted, and turn the volume up. You will hear a different phrase this time.</p>' +
+              '<p>Press the space bar to continue.</p></div>' }],
+          conditional_function: () => !st.passed && st.attempt < AUDIO_CHECK_MAX_TRIES
         }
-      },
-      {
-        timeline: [{ type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'audio_check_retry' },
-          stimulus: '<div class="instr"><p>That was not the right animal, so we could not confirm that you can hear the audio.</p>' +
-            '<p>Please check that your headphones or speakers are connected, that your device is not muted, and turn the volume up. Then try again.</p>' +
-            '<p>Press the space bar to continue.</p></div>' }],
-        conditional_function: () => !audioPassed && audioAttempt < AUDIO_CHECK_MAX_TRIES
-      }
-    ],
-    loop_function: () => !audioPassed && audioAttempt < AUDIO_CHECK_MAX_TRIES
+      ],
+      loop_function: () => !st.passed && st.attempt < AUDIO_CHECK_MAX_TRIES
+    });
+    timeline.push({            // this check was failed on every attempt: end the study here
+      timeline: [{
+        type: jsPsychHtmlKeyboardResponse, trial_duration: 10, stimulus: '', data: { task: 'sound_check_failed' },
+        on_finish: () => {
+          endedEarly = true;
+          jsPsych.endExperiment('<div class="instr"><p>We could not confirm that your audio is working, so the study cannot continue.</p>' +
+            '<p>Please fix your sound (headphones connected, volume up, not muted) and open the study link again. You can now close this window.</p></div>');
+        }
+      }],
+      conditional_function: () => !st.passed
+    });
   });
-  timeline.push({
-    timeline: [{
-      type: jsPsychHtmlKeyboardResponse, trial_duration: 10, stimulus: '', data: { task: 'audio_check_failed' },
-      on_finish: () => {
-        endedEarly = true;
-        jsPsych.endExperiment('<div class="instr"><p>We could not confirm that your audio is working, so the study cannot continue.</p>' +
-          '<p>Please fix your sound (headphones connected, volume up, not muted) and open the study link again. You can now close this window.</p></div>');
-      }
-    }],
-    conditional_function: () => !audioPassed
-  });
+  timeline.push({ type: jsPsychHtmlKeyboardResponse, trial_duration: 10, stimulus: '', data: { task: 'sound_check_done' },
+    on_finish: () => jsPsych.data.addProperties({ sound_check_passed: 1 }) });
 
   // ---- questionnaires: BLP, then additional questions ----
   const questionnaireTimeline = [
