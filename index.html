@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Picture matching</title>
+  <title>Reproducibility of Psychological Science and Instruction</title>
   <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
   <script src="https://unpkg.com/jspsych@7.3.4"></script>
   <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
@@ -519,7 +519,7 @@ function attachSoundCheck(item, st, minPlays) {
   // ---- consent form (first screen) ----
   timeline.push({
     type: jsPsychHtmlButtonResponse,
-    choices: ['I agree to participate', 'I do not agree'],
+    choices: ['I consent to participate', 'I do not consent to participate'],
     data: { task: 'consent' },
     stimulus: `<div class="consent">
 <h3>Consent to Participate in Research</h3>
@@ -530,7 +530,7 @@ function attachSoundCheck(item, st, minPlays) {
 <p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s),  Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
 <p>By participating in this research you are indicating that you are at least 18 years old, have read this consent form, and agree to participate in this research study. Please keep this consent form for your records.</p></div>`,
     on_finish: d => {
-      d.consent = d.response === 0 ? 'agreed' : 'declined';
+      d.consent = d.response === 0 ? 'consented' : 'declined';
       jsPsych.data.addProperties({ consent: d.consent });
       if (d.response !== 0) {                      // declined: stop here (file is saved as incomplete, consent = declined)
         endedEarly = true;
