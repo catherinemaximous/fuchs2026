@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reproducibility of Psychological Science and Instruction</title>
+  <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-audio-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.2"></script>
+  <script src="https://unpkg.com/@jspsych/extension-pipe@0.2.0"></script>
+  <style>
+    .pics { display:flex; gap:100px; justify-content:center; align-items:center; margin-top:30px; }
+    .instr { max-width:800px; margin:auto; text-align:left; line-height:1.5; }
+    .consent { max-width:850px; margin:auto; text-align:left; font-size:14px; line-height:1.45; }
+    .report { max-width:900px; margin:auto; text-align:left; font-size:15px; }
+    .survey { max-width:900px; margin:auto; text-align:left; font-size:16px; line-height:1.4; }
+    .survey h3 { margin-top:0; }
+    .survey .q { margin:26px 0 6px; font-weight:600; }
+    .survey .hint { color:#555; font-size:14px; }
+    .survey .opt { display:block; margin:5px 0; }
+    .survey .opt.inline { display:inline-block; margin-right:16px; }
+    .survey table.grid { width:100%; border-collapse:collapse; }
+    .survey table.grid th, .survey table.grid td { padding:5px 4px; text-align:center; font-weight:normal; }
+    .survey table.grid td:first-child { text-align:left; }
+    .survey select, .survey input[type=text], .survey input[type=number] { padding:4px; font-size:15px; }
+    .survey .scale11 th, .survey .scale11 td { font-size:13px; padding:3px 2px; }
+  </style>
+</head>
+<body>
+<script>
+/* =====================  SETTINGS  ===================== */
+const BLOCK_SIZE = 30;                          // optional break after every 30 trials
+const TRIALS_PER_STRUCTURE = 40;                // 40 RR + 40 SR + 40 OR = 120 trials
+const MAX_SIDE_RUN = 2;                         // correct answer never on the same side more than 2 trials in a row
+const RESPONSE_ALLOWED_WHILE_PLAYING = false;   // paper does not say; decide and report
+const IMG_WIDTH = 380;
+const LIST_SEED = 1;                            // each participant's list is drawn from LIST_SEED + their random ID
+const DATAPIPE_ID = '7rt3xgiIaLP4';             // your DataPipe experiment ID
+const ADD_SUFFIX = true;                        // file name = ID_xxxxx.csv (random suffix stops two people with the same ID overwriting each other); false = ID.csv
+const AUDIO_FOLDER = 'stimuli/Audio files/';    // folders in your GitHub repo (relative to index.html)
+const IMAGE_FOLDER = 'stimuli/Images/';
+const QUESTIONNAIRES_FIRST = true;              // true = questionnaires BEFORE the picture-matching task; false = after it (as in the paper)
+const AUDIO_CHECK_MAX_TRIES = 3;                // sound check: each of the 3 checks gets this many attempts (a new phrase each time); then the study ends with a message
+const SOUND_CHECK_MIN_PLAYS = 1;                // how many times a phrase must be played before the question appears (they can always replay it more often)
+// SONA credit link: copy the "completion URL" from your study's page in SONA and paste it here. Keep %SURVEY_CODE% in it, e.g.
+// 'https://YOURSCHOOL.sona-systems.com/webstudy_credit.aspx?experiment_id=123&credit_token=abc123def456&survey_code=%SURVEY_CODE%'
+const SONA_COMPLETION_URL = '';
+/* ===================================================== */
+
+/* BEGIN LOGIC */
+// spelling variants between audio and image names
+const ALIASES = { hippo: 'hipopotamo', hipopotatmo: 'hipopotamo', girafa: 'jirafa', canguru: 'canguro' };
+const normTok = t => { t = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); return ALIASES[t] || t; };
+const normStem = s => s.split('_').map(normTok).join('_');
+
+function hashSeed(str) { let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return h >>> 0; }
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function shuffle(arr, rng) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+// Reads the file names and works out the answer key.
+//  Audio:  PP_/SR_/OR_ + head_verb_other.wav      Images: 01L_agent_verb_patient.jpg / 01R_patient_verb_agent.jpg
+//  PP (=RR) and SR: head noun is the agent   -> correct image = head_verb_other
+//  OR:              head noun is the patient -> correct image = other_verb_head
+function parseStimuli(files) {
+  const pairs = {}, index = {}, problems = [], items = {};
+  for (const f of files.images) {
+    if (/\(\d+\)/.test(f)) { problems.push('ignored duplicate-looking image: ' + f); continue; }
+    const m = f.match(/^(\d+)([LR])_(.+)\.(jpe?g|png)$/i);
+    if (!m) continue;
+    const no = +m[1], side = m[2].toUpperCase();
+    (pairs[no] = pairs[no] || {})[side] = f;
+    index[normStem(m[3])] = { no, side };
+  }
+  for (const f of files.audio) {
+    const m = f.match(/^(PP|SR|OR)_(.+)\.(wav|mp3|ogg)$/i);
+    if (!m) continue;                                  // skips e.g. silence.wav
+    const typ = m[1].toUpperCase(), toks = m[2].split('_').map(normTok);
+    if (toks.length !== 3) { problems.push(f + ': expected head_verb_other'); continue; }
+    const [head, verb, other] = toks;
+    const target = typ === 'OR' ? `${other}_${verb}_${head}` : `${head}_${verb}_${other}`;
+    const hit = index[target];
+    if (!hit) { problems.push(`${f}: no image named '${target}'`); continue; }
+    const foilSide = hit.side === 'L' ? 'R' : 'L';
+    if (!pairs[hit.no][foilSide]) { problems.push(`${f}: pair ${hit.no} is missing its ${foilSide} image`); continue; }
+    (items[hit.no] = items[hit.no] || {})[typ] = { pair: hit.no, structure: typ === 'PP' ? 'RR' : typ,
+      audio: f, correct: pairs[hit.no][hit.side], foil: pairs[hit.no][foilSide] };
+  }
+  const complete = Object.keys(items).filter(n => Object.keys(items[n]).length === 3).map(Number);
+  return { items, complete, problems };
+}
+
+// Assign the correct-answer side (L/R) along the trial sequence:
+// exactly half L / half R within each structure, and never more than maxRun in a row on the same side.
+function assignSides(seq, rng, maxRun) {
+  const cnt = {}; seq.forEach(x => cnt[x] = (cnt[x] || 0) + 1);
+  const cap = {}; for (const x in cnt) cap[x] = { L: Math.ceil(cnt[x] / 2), R: Math.floor(cnt[x] / 2) };
+  const out = new Array(seq.length);
+  let steps = 0;
+  function go(i) {
+    if (i === seq.length) return true;
+    if (++steps > 20000) return false;
+    for (const side of (rng() < 0.5 ? ['L', 'R'] : ['R', 'L'])) {
+      if (cap[seq[i]][side] === 0) continue;
+      let run = 0; for (let k = i - 1; k >= 0 && out[k] === side && run < maxRun; k--) run++;
+      if (run >= maxRun) continue;                      // would make maxRun+1 in a row
+      out[i] = side; cap[seq[i]][side]--;
+      if (go(i + 1)) return true;
+      cap[seq[i]][side]++;
+    }
+    return false;
+  }
+  return go(0) ? out : null;
+}
+
+// One 120-trial list for one participant
+function buildList(parsed, pid, perType, seed) {
+  const rng = mulberry32(hashSeed(seed + '-' + pid));
+  const { items, complete } = parsed;
+  perType = Math.min(perType, complete.length);
+  const uses = {}; complete.forEach(n => uses[n] = 0);
+  const trials = [];
+  for (const typ of shuffle(['PP', 'SR', 'OR'], rng)) {
+    // take the pairs used least so far (stable sort keeps the random order among ties)
+    const pick = shuffle([...complete], rng).sort((a, b) => uses[a] - uses[b]).slice(0, perType);
+    pick.forEach(n => { uses[n]++; trials.push({ pair: n, typ, structure: items[n][typ].structure }); });
+  }
+  // trial order: no same pair back-to-back; then correct-answer sides with no long runs
+  let sides = null;
+  for (let k = 0; k < 500 && !sides; k++) {
+    for (let j = 0; j < 2000; j++) {
+      shuffle(trials, rng);
+      if (trials.every((t, i) => i === 0 || t.pair !== trials[i - 1].pair)) break;
+    }
+    sides = assignSides(trials.map(t => t.structure), rng, MAX_SIDE_RUN);
+  }
+  if (!sides) {                                         // should not happen; fall back to plain 50/50 per structure
+    console.warn('Could not satisfy the side-run limit; using plain 50/50 sides.');
+    const by = {}; sides = [];
+    trials.forEach((t, i) => { (by[t.structure] = by[t.structure] || []).push(i); });
+    for (const x in by) shuffle(by[x], rng).forEach((idx, j) => sides[idx] = j % 2 ? 'R' : 'L');
+  }
+  trials.forEach((t, i) => {
+    const it = items[t.pair][t.typ], L = sides[i] === 'L';
+    Object.assign(t, {
+      audio: encodeURI(AUDIO_FOLDER) + encodeURIComponent(it.audio),
+      pic_left_file: L ? it.correct : it.foil, pic_right_file: L ? it.foil : it.correct,
+      pic_left:  encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.correct : it.foil),
+      pic_right: encodeURI(IMAGE_FOLDER) + encodeURIComponent(L ? it.foil : it.correct),
+      correct_response: L ? 'ArrowLeft' : 'ArrowRight', audio_file: it.audio,
+      trial: i + 1, block: Math.floor(i / BLOCK_SIZE) + 1 });
+  });
+  return trials;
+}
+/* END LOGIC */
+
+/* BEGIN SURVEYS */
+// ---------- small HTML helpers ----------
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+const selectHtml = (name, opts, label) => `<select name="${name}" required><option value="" disabled selected>${label || 'Select...'}</option>` +
+  opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('') + '</select>';
+const radioList = (name, opts, inline) => opts.map(([v, l]) =>
+  `<label class="opt${inline ? ' inline' : ''}"><input type="radio" name="${name}" value="${esc(v)}" required> ${esc(l)}</label>`).join('');
+// "select all that apply": one uniquely named checkbox per option (the form plugin keeps only one value per name)
+const checkList = (prefix, labels) => labels.map(l =>
+  `<label class="opt"><input type="checkbox" name="${prefix}_${slug(l)}" value="1"> ${esc(l)}</label>`).join('');
+const question = (text, body, hint) => `<div class="q">${text}</div>${hint ? `<div class="hint">${hint}</div>` : ''}<div class="ans">${body}</div>`;
+const LIKERT = [['always', 'Always'], ['often', 'Often'], ['sometimes', 'Sometimes'], ['rarely', 'Rarely'], ['never', 'Never']];
+
+// grid of radio buttons: rows = [name, text]; columns = min..max
+const scaleGrid = (rows, min, max, lowLabel, highLabel) =>
+  `<table class="grid"><tr><th></th>${range(min, max).map(v => `<th>${v}</th>`).join('')}</tr>` +
+  rows.map(([name, text]) => `<tr><td>${text}</td>${range(min, max).map(v => `<td><input type="radio" name="${name}" value="${v}" required></td>`).join('')}</tr>`).join('') +
+  `</table><div class="hint">${min} = ${lowLabel}, ${max} = ${highLabel}</div>`;
+
+// 0-10 scale with a label under each point
+const scale11 = (name, labels) =>
+  `<table class="grid scale11"><tr>${labels.map((l, i) => `<td><input type="radio" name="${name}" value="${i}" required></td>`).join('')}</tr>` +
+  `<tr>${labels.map((l, i) => `<th>${i}<br>${l}</th>`).join('')}</tr></table>`;
+
+// language / percentage pairs (up to n rows); first row required; percentages must add up to 100
+const pairGroup = (id, n) => `<table class="grid">` +
+  range(1, n).map(i => `<tr><td>${i}.</td><td><input type="text" name="${id}_lang_${i}" ${i === 1 ? 'required' : ''} size="18" maxlength="40" placeholder="Language"></td>` +
+    `<td><input type="number" name="${id}_pct_${i}" ${i === 1 ? 'required' : ''} min="0" max="100" step="1" style="width:80px" placeholder="%"> %</td></tr>`).join('') +
+  `<tr><td></td><td></td><td class="hint" id="${id}_tot">Total: 0%</td></tr></table>`;
+
+// ---------- validation helpers (run in on_load) ----------
+const attachBlpSums = () => [7, 8, 9, 10, 11].forEach(q => {
+  const els = ['eng', 'spa', 'oth'].map(l => document.querySelector(`[name="blp_q${q}_${l}"]`));
+  const out = document.getElementById('tot_q' + q);
+  const check = () => {
+    const sum = els.reduce((a, e) => a + (e.value === '' ? 0 : +e.value), 0);
+    out.textContent = 'Total: ' + sum + '%';
+    els[2].setCustomValidity(sum === 100 ? '' : 'The three percentages in this question must add up to 100%.');
+  };
+  els.forEach(e => e.addEventListener('change', check));
+  check();
+});
+const attachPairSum = (id, n) => {
+  const lang = i => document.querySelector(`[name="${id}_lang_${i}"]`);
+  const pct = i => document.querySelector(`[name="${id}_pct_${i}"]`);
+  const out = document.getElementById(id + '_tot');
+  const check = () => {
+    let sum = 0;
+    for (let i = 1; i <= n; i++) {
+      const l = lang(i).value.trim(), p = pct(i).value;
+      sum += p === '' ? 0 : +p;
+      if (i > 1) {
+        lang(i).setCustomValidity(p !== '' && l === '' ? 'Enter the language for this percentage.' : '');
+        pct(i).setCustomValidity(l !== '' && p === '' ? 'Enter a percentage for this language.' : '');
+      }
+    }
+    out.textContent = 'Total: ' + sum + '%';
+    pct(1).setCustomValidity(sum === 100 ? '' : 'The percentages must add up to 100%.');
+  };
+  range(1, n).forEach(i => ['input', 'change'].forEach(ev => { lang(i).addEventListener(ev, check); pct(i).addEventListener(ev, check); }));
+  check();
+};
+const attachSiblingToggle = () => {
+  const block = document.getElementById('sib_block');
+  const toggle = () => {
+    const c = document.querySelector('input[name="sib_has"]:checked');
+    const yes = !!c && c.value === 'yes';
+    block.style.display = yes ? '' : 'none';
+    block.querySelectorAll('input,select').forEach(el => { el.disabled = !yes; });
+  };
+  document.querySelectorAll('input[name="sib_has"]').forEach(r => r.addEventListener('change', toggle));
+  toggle();
+};
+
+// ---------- the questionnaire pages: BLP (English-Spanish) first, then the additional questions ----------
+const N_QPAGES = 11;
+// onAnswers(obj) is called after every questionnaire page with {question_name: answer}; main() writes it into the data (one column per question)
+function buildQuestionnaire(onAnswers) {
+  const pages = [];
+  let page = 0;
+  const add = (task, title, body, onLoad, intro) => {
+    page++;
+    let boxes = [];
+    pages.push({
+      type: jsPsychSurveyHtmlForm,
+      button_label: 'Continue',
+      html: `<div class="survey"><h3>Language History Questionnaire (${page} of ${N_QPAGES})</h3><p class="hint">Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>${intro ? `<p class="hint">${intro}</p>` : ''}${title ? `<h4>${title}</h4>` : ''}${body}</div>`,
+      data: { task },
+      on_load: () => { boxes = [...document.querySelectorAll('.survey input[type=checkbox]')].map(e => e.name); (onLoad || (() => {}))(); },
+      on_finish: d => {
+        const r = d.response || {}, out = Object.assign({}, r);
+        // "select all that apply": unticked boxes are missing from the response -> record them as 0 (ticked = 1)
+        // (sibling follow-ups stay blank if the participant has no siblings)
+        boxes.forEach(n => { if (!(n in out) && !(n.startsWith('sib_') && r.sib_has !== 'yes')) out[n] = '0'; });
+        onAnswers(out, d);
+      }
+    });
+  };
+  const yrs = (first, extra) => [first, ...range(1, 19).map(n => [String(n), String(n)]), ['20+', '20+'], ...(extra || [])];
+  const hist = (q, text, opts) => question(`${q}. ${text}`,
+    `<table class="grid"><tr><th></th><th>English</th><th>Spanish</th></tr>` +
+    `<tr><td></td><td>${selectHtml(`blp_q${q}_eng`, opts)}</td><td>${selectHtml(`blp_q${q}_spa`, opts)}</td></tr></table>`);
+  const use = (q, text) => question(`${q}. ${text}`,
+    `<table class="grid">` +
+    [['English', 'eng'], ['Spanish', 'spa'], ['Other languages', 'oth']].map(([l, k]) =>
+      `<tr><td>${l}</td><td>${selectHtml(`blp_q${q}_${k}`, range(0, 10).map(i => [String(i * 10), i * 10 + '%']), '--')}</td></tr>`).join('') +
+    `<tr><td></td><td class="hint" id="tot_q${q}">Total: 0%</td></tr></table>`);
+
+  // ---- BLP I. Biographical information ----
+  add('blp_bio', 'I. Biographical information',
+    question('Age', '<input type="number" name="age" min="16" max="100" required style="width:80px">') +
+    question('Gender', radioList('gender', [['male', 'Male'], ['female', 'Female'], ['other', 'Other'], ['no_answer', 'Prefer not to say']], true)) +
+    question('Current place of residence', 'City/state: <input type="text" name="residence_city_state" required maxlength="60"> &nbsp; Country: <input type="text" name="residence_country" required maxlength="60">') +
+    question('Highest level of formal education', selectHtml('education', [['less_than_hs', 'Less than high school'], ['high_school', 'High school'], ['some_college', 'Some college'],
+      ['college', 'College (B.A., B.S.)'], ['some_grad', 'Some graduate school'], ['masters', 'Masters'], ['phd_md_jd', 'PhD/MD/JD'], ['other', 'Other']])),
+    null, 'This is not a test. Please answer every question.');
+
+  // ---- BLP II. Language history ----
+  add('blp_history', 'II. Language history',
+    hist(1, 'At what age did you <b>start learning</b> the following languages?', yrs(['0', 'Since birth'])) +
+    hist(2, 'At what age did you <b>start to feel comfortable</b> using the following languages?', yrs(['0', 'As early as I can remember'], [['not_yet', 'Not yet']])) +
+    hist(3, 'How many years of <b>classes</b> (grammar, history, math, etc.) have you had in the following languages (primary school through university)?', yrs(['0', '0'])) +
+    hist(4, 'How many years have you spent in a <b>country/region</b> where the following languages are spoken?', yrs(['0', '0'])) +
+    hist(5, 'How many years have you spent in a <b>family</b> where the following languages are spoken?', yrs(['0', '0'])) +
+    hist(6, 'How many years have you spent in a <b>work environment</b> where the following languages are spoken?', yrs(['0', '0'])),
+    null, 'In this section, please answer some factual questions about your language history.');
+
+  // ---- BLP III. Language use ----
+  add('blp_use', 'III. Language use',
+    use(7, 'In an average week, what percentage of the time do you use the following languages <b>with friends</b>?') +
+    use(8, 'In an average week, what percentage of the time do you use the following languages <b>with family</b>?') +
+    use(9, 'In an average week, what percentage of the time do you use the following languages <b>at school/work</b>?') +
+    use(10, 'When you talk to yourself, how often do you <b>talk to yourself</b> in the following languages?') +
+    use(11, 'When you count, how often do you <b>count</b> in the following languages?'),
+    attachBlpSums, 'Total use for all languages in a given question should equal 100%.');
+
+  // ---- BLP IV. Language proficiency ----
+  const prof = (q, verb) => [[`blp_q${q}_eng`, `How well do you ${verb} <b>English</b>?`], [`blp_q${q}_spa`, `How well do you ${verb} <b>Spanish</b>?`]];
+  add('blp_proficiency', 'IV. Language proficiency',
+    scaleGrid([...prof(12, 'speak'), ...prof(13, 'understand'), ...prof(14, 'read'), ...prof(15, 'write')], 0, 6, 'not well at all', 'very well'),
+    null, 'Rate your language proficiency by giving marks from 0 to 6.');
+
+  // ---- BLP V. Language attitudes ----
+  add('blp_attitudes', 'V. Language attitudes',
+    scaleGrid([
+      ['blp_q16_eng', 'I feel like myself when I speak <b>English</b>.'], ['blp_q16_spa', 'I feel like myself when I speak <b>Spanish</b>.'],
+      ['blp_q17_eng', 'I identify with an <b>English-speaking</b> culture.'], ['blp_q17_spa', 'I identify with a <b>Spanish-speaking</b> culture.'],
+      ['blp_q18_eng', 'It is important to me to use (or eventually use) <b>English</b> like a native speaker.'], ['blp_q18_spa', 'It is important to me to use (or eventually use) <b>Spanish</b> like a native speaker.'],
+      ['blp_q19_eng', 'I want others to think I am a native speaker of <b>English</b>.'], ['blp_q19_spa', 'I want others to think I am a native speaker of <b>Spanish</b>.']], 0, 6, 'disagree', 'agree'),
+    null, 'Respond to the statements by giving marks from 0 to 6.');
+
+  // ---- Additional questions: languages, exposure, accent ----
+  const ACCENT = ['None', 'Almost none', 'Very light', 'Light', 'Some', 'Moderate', 'Considerable', 'Heavy', 'Very heavy', 'Extremely heavy', 'Pervasive'];
+  const NONNATIVE = ['Never', 'Almost never', '', '', '', 'Half of the time', '', '', '', '', 'Always'];
+  const textRow = (id, n) => range(1, n).map(i => `<input type="text" name="${id}_${i}" ${i === 1 ? 'required' : ''} size="14" maxlength="40" placeholder="${i}">`).join(' ');
+  add('aq_languages', 'Languages and exposure',
+    question('(1) Please list all the languages you know <b>in order of dominance</b>:', textRow('aq_dominance', 5)) +
+    question('(2) Please list all the languages you know <b>in order of acquisition</b> (your native language first):', textRow('aq_acquisition', 5)) +
+    question('(3) Please list what percentage of the time you are <i>currently</i> and <i>on average</i> exposed to each language.', pairGroup('aq_exposure', 5), 'Your percentages should add up to 100%.') +
+    question('(4) When choosing to read a text available in all your languages, in what percentage of cases would you choose to read it in each of your languages? Assume that the original was written in another language, which is unknown to you.', pairGroup('aq_reading', 5), 'Your percentages should add up to 100%.') +
+    question('(5) When choosing a language to speak with a person who is equally fluent in all your languages, what percentage of time would you choose to speak each language? Please report percent of total time.', pairGroup('aq_speaking', 5), 'Your percentages should add up to 100%.') +
+    question('(6) In your perception, how much of a foreign accent do you have in <b>Spanish</b>?', scale11('aq_accent_self', ACCENT)) +
+    question('(7) How frequently do others identify you as a non-native speaker based on your accent in <b>Spanish</b>?', scale11('aq_accent_others', NONNATIVE)),
+    () => { attachPairSum('aq_exposure', 5); attachPairSum('aq_reading', 5); attachPairSum('aq_speaking', 5); });
+
+  // ---- Additional questions: self-reported comprehension ----
+  const HL = null;   // no extra note needed: the questions now say 'Spanish'
+  add('aq_comprehension1', 'The following questions will ask about your experience with understanding Spanish.',
+    question('1. How much Spanish do you understand when people speak to you?', radioList('comp_understand_amount',
+      [['everything', 'Everything'], ['most', 'Most of it (80–90%)'], ['general_idea', 'General idea (60–70%)'], ['some_words', 'Some words (~25%)'], ['nothing', 'Nothing']])) +
+    question('2. How often can you understand the main topic of a conversation in Spanish?', radioList('comp_main_topic', LIKERT)) +
+    question('3. How often can you understand specific details (e.g., who did what, when)?', radioList('comp_details', LIKERT)) +
+    question('4. How often can you understand instructions or requests in Spanish?', radioList('comp_instructions', LIKERT)) +
+    question('5. How often do you rely on context (gestures, situation) to understand Spanish?', radioList('comp_context', LIKERT)) +
+    question('6. Can you usually tell whether someone is asking a question or making a statement?', radioList('comp_question_statement', LIKERT)),
+    null, HL);
+
+  add('aq_comprehension2', '',
+    question('7. Can you understand Spanish better when:', checkList('comp_better', ['The speaker is a family member', 'The topic is familiar', 'The speech is slow', 'You can see the speaker’s gestures', 'You are in a familiar setting']), 'Select all that apply.') +
+    question('8. How often can you translate what you hear into English?', radioList('comp_translate', LIKERT)) +
+    question('9. Compared to speaking Spanish, listening to Spanish feels…', checkList('comp_listening', ['Easier', 'More comfortable', 'Less stressful', 'More familiar', 'About the same', 'Harder']), 'Select all that apply.') +
+    question('10. When I hear a Spanish song, I…', checkList('comp_song', ['Try to sing along', 'Recognize many words', 'Recognize a few words', 'Understand the general meaning', 'Do not understand it', 'Enjoy listening even if I don’t understand', 'Avoid singing because I’m unsure of the words']), 'Select all that apply.') +
+    question('11. Growing up, I…', checkList('comp_growing', ['Heard Spanish at home', 'Spoke Spanish at home', 'Understood Spanish but didn’t speak it', 'Was encouraged to speak Spanish', 'Was discouraged from speaking Spanish', 'Lost Spanish when I started school', 'Only heard Spanish from extended family', 'Rarely heard Spanish']), 'Select all that apply.'),
+    null, HL);
+
+  // ---- Additional questions: siblings ----
+  add('aq_siblings', 'Siblings',
+    question('Do you have siblings?', radioList('sib_has', [['yes', 'Yes'], ['no', 'No']], true), 'If no, you can skip the remaining sibling questions.') +
+    `<div id="sib_block" style="display:none">` +
+    question('If yes, which of the following applies to you:', radioList('sib_position', [['oldest', 'I am the oldest'], ['middle', 'I am in the middle'], ['youngest', 'I am the youngest']])) +
+    question('How many siblings do you have?', '<input type="number" name="sib_number" min="1" max="30" required style="width:80px">') +
+    question('My siblings and I…', checkList('sib_c', ['All speak Spanish', 'All understand Spanish', 'None of us speak Spanish', 'None of us understand Spanish', 'Some siblings speak Spanish, others do not', 'Some siblings understand Spanish, others do not']), 'Select all that apply.') +
+    question('Compared to my siblings…', checkList('sib_d', ['Older siblings speak more Spanish than I do', 'Older siblings understand more Spanish than I do', 'Younger siblings speak more Spanish than I do', 'Younger siblings understand more Spanish than I do', 'I speak more Spanish than my siblings', 'I understand more Spanish than my siblings', 'I speak less Spanish than my siblings', 'I understand less Spanish than my siblings']), 'Select all that apply.') +
+    question('When interacting with my siblings growing up…', checkList('sib_e', ['We spoke mostly English', 'We spoke mostly Spanish', 'We mixed Spanish and English', 'We used Spanish only with older siblings', 'We used Spanish only with younger siblings', 'We never used Spanish with each other']), 'Select all that apply.') +
+    question('Today, my siblings and I…', checkList('sib_f', ['Speak Spanish together', 'Speak English together', 'Mix Spanish and English', 'Only use Spanish for jokes/phrases', 'Never use Spanish together']), 'Select all that apply.') +
+    `</div>`,
+    attachSiblingToggle, HL);
+
+  // ---- Additional questions: production ----
+  add('aq_production', 'The following questions will ask about your experience with speaking Spanish.',
+    question('1. What can you produce in Spanish?', radioList('prod_can_produce',
+      [['full_sentences', 'Full sentences'], ['short_phrases', 'Short phrases'], ['common_expressions', 'Common expressions'], ['single_words', 'Single words'], ['no_speech', 'No speech at all']])) +
+    question('2. When you try to speak, which of the following happens?', checkList('prod_try', ['I can say isolated words', 'I can say memorized expressions', 'I mix English with Spanish words', 'I cannot put words together into sentences', 'I avoid speaking because I’m unsure of correctness']), 'Select all that apply.') +
+    question('3. How often do you respond in Spanish when someone speaks to you in Spanish?', radioList('ctx_respond_freq', LIKERT)) +
+    question('4. If you do respond, what form does your response usually take?', radioList('ctx_response_form',
+      [['english_only', 'English only'], ['english_with_hl_words', 'English with Spanish words'], ['hl_words_only', 'Spanish words only'], ['hl_phrases', 'Spanish phrases'], ['hl_full_sentences', 'Full Spanish sentences']])),
+    null, HL);
+
+  add('aq_production2', '',
+    question('5. How comfortable do you feel speaking Spanish?', radioList('ctx_comfort',
+      [['very_comfortable', 'Very comfortable'], ['somewhat_comfortable', 'Somewhat comfortable'], ['neutral', 'Neutral'], ['uncomfortable', 'Uncomfortable'], ['do_not_speak', 'I do not speak it']])) +
+    question('6. When I am asked to speak Spanish, I…', checkList('ctx_asked', ['Feel frustrated', 'Feel anxious', 'Feel embarrassed', 'Feel pressured', 'Feel neutral', 'Feel comfortable', 'Avoid speaking', 'Try to speak but struggle', 'Can speak but only with effort', 'Can speak comfortably']), 'Select all that apply.') +
+    question('7. If I am asked to speak Spanish, I often…', checkList('ctx_often', ['Struggle to communicate', 'Produce only isolated words', 'Produce memorized phrases', 'Mix English with Spanish', 'Switch back to English quickly', 'Speak in full sentences', 'Speak fluently']), 'Select all that apply.'),
+    null, HL);
+  return pages;
+}
+
+// ---------- audio check ----------
+// the animal names as they appear in the audio file names (after normTok) -> display name
+const ANIMALS = { gato: 'gato', elefante: 'elefante', tigre: 'tigre', oso: 'oso', leon: 'león', pajaro: 'pájaro', mono: 'mono', raton: 'ratón',
+  jirafa: 'jirafa', toro: 'toro', pollo: 'pollo', pato: 'pato', rana: 'rana', zorro: 'zorro', tortuga: 'tortuga', puerco: 'puerco',
+  cordero: 'cordero', buho: 'búho', canguro: 'canguro', hipopotamo: 'hipopótamo' };
+// file name -> [first animal, verb, last animal] (the head noun is always heard first, the other noun last)
+const stemTokens = file => file.replace(/^(PP|SR|OR)_/i, '').replace(/\.[^.]+$/, '').split('_').map(normTok);
+
+// One sound-check item. kind: 'first' = which animal was mentioned first, 'last' = which was mentioned last, 'both' = which two animals.
+function makeSoundCheckItem(kind, file, sample, shuffle) {
+  const [head, , other] = stemTokens(file);
+  const animals = Object.keys(ANIMALS), nm = a => ANIMALS[a];
+  let question, options, answer;
+  if (kind === 'first') {
+    question = 'Which animal was mentioned <b>first</b> in the phrase?';
+    answer = head;
+    options = shuffle([head, ...sample(animals.filter(a => a !== head), 3)]).map(a => [a, nm(a)]);
+  } else if (kind === 'last') {
+    question = 'Which animal was mentioned <b>last</b> in the phrase?';
+    answer = other;
+    options = shuffle([other, ...sample(animals.filter(a => a !== other), 3)]).map(a => [a, nm(a)]);
+  } else {
+    question = 'Which <b>two</b> animals were mentioned in the phrase?';
+    const key = (x, y) => [x, y].sort().join('|');
+    const [f1, f2, f3, f4] = sample(animals.filter(a => a !== head && a !== other), 4);
+    answer = key(head, other);
+    options = shuffle([[answer, `${nm(head)} and ${nm(other)}`], [key(head, f1), `${nm(head)} and ${nm(f1)}`],
+                       [key(other, f2), `${nm(other)} and ${nm(f2)}`], [key(f3, f4), `${nm(f3)} and ${nm(f4)}`]]);
+  }
+  options.push(['none', 'I could not hear anything']);
+  return { kind, file, url: encodeURI(AUDIO_FOLDER) + encodeURIComponent(file), question, options, answer };
+}
+
+// The sound-check page: a Play button (as many plays as they like), then "I'm ready to answer" reveals the question.
+const soundCheckHtml = (item, n, total) => `<div class="instr">
+  <h3>Sound check (${n} of ${total})</h3>
+  <p>Click the button to hear a short phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer”.</p>
+  <p><button type="button" id="sc_play" class="jspsych-btn">▶ Play</button> &nbsp; <span id="sc_status" class="hint">Not played yet</span></p>
+  <p><button type="button" id="sc_ready" class="jspsych-btn" disabled>I’m ready to answer</button></p>
+  <div id="sc_q" style="display:none"><p><b>${item.question}</b></p>${radioList('heard', item.options)}</div>
+  <p class="hint">If you cannot hear anything, check that your headphones or speakers are connected, your device is not muted, and the volume is turned up.</p></div>`;
+
+// st = shared state object: st.completed = full plays, st.errors = load errors, st.audio = the Audio element
+function attachSoundCheck(item, st, minPlays) {
+  st.completed = 0; st.errors = 0;
+  const audio = new Audio(item.url); audio.preload = 'auto'; st.audio = audio;
+  const play = document.getElementById('sc_play'), ready = document.getElementById('sc_ready'), status = document.getElementById('sc_status');
+  const q = document.getElementById('sc_q'), radios = q.querySelectorAll('input');
+  const next = document.getElementById('jspsych-survey-html-form-next') || document.querySelector('#jspsych-content input[type=submit]');
+  radios.forEach(r => { r.disabled = true; });         // not answerable (and not validated) until the question is shown
+  if (next) next.disabled = true;
+  const refresh = msg => {
+    status.textContent = msg || (st.completed === 0 ? 'Not played yet' : 'Played ' + st.completed + (st.completed === 1 ? ' time' : ' times'));
+    ready.disabled = st.completed < minPlays;
+  };
+  audio.addEventListener('ended', () => { st.completed++; play.disabled = false; play.textContent = '▶ Play again'; refresh(); });
+  audio.addEventListener('error', () => { st.errors++; play.disabled = false; refresh('The audio could not be loaded. Please check your connection and click Play again.'); });
+  play.addEventListener('click', () => {
+    play.disabled = true; status.textContent = 'Playing...';
+    audio.currentTime = 0;
+    const p = audio.play();
+    if (p && p.catch) p.catch(() => { st.errors++; play.disabled = false; refresh('The audio could not be played. Please check your sound and click Play again.'); });
+  });
+  ready.addEventListener('click', () => {
+    q.style.display = ''; radios.forEach(r => { r.disabled = false; });
+    if (next) next.disabled = false;
+    ready.style.display = 'none';
+  });
+  refresh();
+}
+/* END SURVEYS */
+
+(async function main() {
+  const params = new URLSearchParams(window.location.search);
+  // Testing switches:  ?nosave=1 (do not send data to DataPipe)  ?p=test1 (fixed list)  ?debug=1 (stimulus check)  ?n=2 (only 2 trials per structure)
+  const NOSAVE = params.get('nosave') === '1';
+  // SONA: the study URL ends in ?id=%SURVEY_CODE% so the participant ID is their SONA code (the name/phone form is skipped).
+  // Otherwise the ID = first 3 letters of first name + first 3 of last name + last 2 phone digits (e.g. CATMAX42).
+  const sonaCode = params.get('id') || '';
+  let participantId = sonaCode ? sonaCode.toUpperCase().replace(/[^A-Z0-9]/g, '') : null;
+
+  // find stimuli.json in the repo root, or inside the stimuli/ folder
+  let files = null;
+  for (const u of ['stimuli.json', 'stimuli/stimuli.json']) {
+    try { const r = await fetch(u); if (r.ok) { files = await r.json(); break; } } catch (e) {}
+  }
+  if (!files) {
+    document.body.innerHTML = '<p style="max-width:700px;margin:80px auto">Could not find stimuli.json. Put it in the repo root (next to index.html) and push it to GitHub.</p>';
+    return;
+  }
+  const parsed = parseStimuli(files);
+  if (parsed.problems.length) console.warn('Stimulus problems:\n' + parsed.problems.join('\n'));
+  if (parsed.complete.length < 2) {
+    document.body.innerHTML = '<p>No stimuli found. Check stimuli.json and the audio/ and img/ folders.</p>';
+    return;
+  }
+  if (parsed.complete.length < 2 * TRIALS_PER_STRUCTURE)
+    console.warn(parsed.complete.length + ' complete pairs; some pairs will appear in two structures.');
+
+  // warn participants who try to refresh or close the page (they would lose their progress)
+  let endedEarly = false;
+  const warnUnload = e => { e.preventDefault(); e.returnValue = ''; };
+  window.addEventListener('beforeunload', warnUnload);
+
+  // jsPsych + DataPipe (saves one CSV per participant to your Google Drive when the experiment ends)
+  const initOptions = {
+    on_finish: function () {
+      window.removeEventListener('beforeunload', warnUnload);
+      if (endedEarly) return;
+      if (NOSAVE) { jsPsych.data.displayData(); return; }
+      const sonaUrl = SONA_COMPLETION_URL.replace('%SURVEY_CODE%', encodeURIComponent(sonaCode));
+      const creditHtml = SONA_COMPLETION_URL
+        ? `<p><a href="${sonaUrl}"><b>Click here to return to SONA and receive your credit.</b></a></p>`
+        : '';
+      document.body.innerHTML = `<div class="instr" style="margin-top:80px;text-align:center"><h3>Thank you! You have completed the study.</h3>` +
+        `${creditHtml}<p>You may now close this window.</p></div>`;
+    }
+  };
+  if (!NOSAVE) {
+    initOptions.extensions = [{
+      type: jsPsychExtensionPipe,
+      params: { experiment_id: DATAPIPE_ID, filename: function () { return (participantId || 'NOID') + (ADD_SUFFIX ? '_' + subject_id.slice(0, 5) : '') + '.csv'; } }
+    }];
+  }
+  const jsPsych = initJsPsych(initOptions);
+  var subject_id = jsPsych.randomization.randomID(10);
+  // completion_status is in every row of the CSV: "incomplete" until the participant reaches the very end of the study, then "complete"
+  jsPsych.data.addProperties({ subject_id: subject_id, completion_status: 'incomplete' });
+
+  // This participant's list is generated from their random ID (or from ?p= when testing)
+  const PID = params.get('p') || subject_id;
+  const PER_TYPE = parseInt(params.get('n')) || TRIALS_PER_STRUCTURE;   // ?n=2 gives a quick 6-trial test run
+  const LIST = buildList(parsed, PID, PER_TYPE, LIST_SEED);
+
+  const timeline = [];
+
+  // ---- consent form (first screen) ----
+  timeline.push({
+    type: jsPsychHtmlButtonResponse,
+    choices: ['I consent to participate', 'I do not consent to participate'],
+    data: { task: 'consent' },
+    stimulus: `<div class="consent">
+<h3>Consent to Participate in Research</h3>
+<p>You are being invited to participate in a research study titled “Reproducibility of Psychological Science and Instruction.” This study is being done by Dr. Bria Long from UC San Diego and associated graduate students in Experimental Methods course. You were selected to participate in this study because you are an adult in the U.S. and have been a represented population in previous psychology studies.</p>
+<p>The purpose of this study is to better understand how well previously published studies in the psychological field replicate online and with different populations. Your participation in this research should last approximately 5-30 minutes  If you agree to take part in this study, you may be asked to view a set of stimuli, including pictures, sounds, written text, or videos and then giving some responses via key-presses, verbally, or with paper-and-pencil. We may also observe your choices or preferences among an array of stimuli.  These stimuli will be taken directly from or closely adapted from studies that already exist in the published psychological literature. Stimuli will include, e.g., pictures of objects and human faces, audio and video clips, short text passages, etc. None of the stimuli will be disturbing, threatening, or offensive. The online and in-person experiments described in this protocol will take no more than 30 minutes. An example game you might play would be to click on an image on the screen that matches a word you hear being said out loud. Your total expected time commitment for this study is between 5-30 minutes, and is specified in the study description.</p>
+<p>Your participation in this study is completely voluntary and you can withdraw at any time. Choosing not to participate or withdrawing will result in no penalty or loss of benefits to which you are entitled. You are free to skip any question that you choose.</p>
+<p>We will not be asking for any personally identifying information, and we will handle responses as confidentially as possible. Your SONA or Prolific IDs will never be tied to your responses on this survey. However, we cannot guarantee the confidentiality of information transmitted over the Internet. To minimize this risk, data containing anything that might be personally identifiable (e.g. Prolific IDs or IP addresses) will be encrypted on transfer and storage and will only be accessible to qualified lab personnel. We will be keeping data collected as part of this experiment indefinitely. This anonymized data (containing neither Prolific IDs nor IP addresses) may be shared with the scientific community or with other participants to be used as stimuli in future studies.</p>
+<p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s),  Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
+<p>By participating in this research you are indicating that you are at least 18 years old, have read this consent form, and agree to participate in this research study. Please keep this consent form for your records.</p></div>`,
+    on_finish: d => {
+      d.consent = d.response === 0 ? 'consented' : 'declined';
+      jsPsych.data.addProperties({ consent: d.consent });
+      if (d.response !== 0) {                      // declined: stop here (file is saved as incomplete, consent = declined)
+        endedEarly = true;
+        jsPsych.endExperiment('<div class="instr" style="margin-top:80px;text-align:center"><p>You chose not to participate. Thank you for your time. You can now close this window.</p></div>');
+      }
+    }
+  });
+
+  if (!participantId) {
+    timeline.push({
+      type: jsPsychSurveyHtmlForm,
+      button_label: 'Continue',
+      html: `<div class="instr"><p><b>Participant ID</b></p>
+        <p>First 3 letters of your first name: <input name="first" required minlength="3" maxlength="3" pattern="[A-Za-z]{3}" size="4" autocomplete="off"></p>
+        <p>First 3 letters of your last name: <input name="last" required minlength="3" maxlength="3" pattern="[A-Za-z]{3}" size="4" autocomplete="off"></p>
+        <p>Last 2 digits of your phone number: <input name="phone" required minlength="2" maxlength="2" pattern="[0-9]{2}" size="3" autocomplete="off"></p>
+        <p><i>English letters only. If a name has fewer than 3 letters, add X (e.g. LIX).</i></p></div>`,
+      data: { task: 'participant_id' },
+      on_finish: d => {
+        const r = d.response;
+        participantId = (r.first + r.last).toUpperCase() + r.phone;
+        jsPsych.data.addProperties({ participant_id: participantId });
+      }
+    });
+  } else {
+    jsPsych.data.addProperties({ participant_id: participantId });
+  }
+
+  timeline.push({
+    type: jsPsychPreload,
+    audio: [...new Set(LIST.map(t => t.audio))],
+    images: [...new Set(LIST.flatMap(t => [t.pic_left, t.pic_right]))],
+    continue_after_error: true, max_load_time: 180000,
+    message: '<p>Loading... please wait.</p>'
+  });
+
+  if (params.get('debug') === '1') {            // researcher view:  ...?p=1&debug=1
+    const n = {}; LIST.forEach(t => n[t.structure] = (n[t.structure] || 0) + 1);
+    timeline.push({
+      type: jsPsychHtmlKeyboardResponse, choices: [' '],
+      stimulus: `<div class="report"><h3>Stimulus check (list ${PID})</h3>
+        <p>${files.audio.length} audio files, ${files.images.length} images, ${parsed.complete.length} complete pairs.
+        Trials: ${LIST.length} (${JSON.stringify(n)})</p>
+        <p><b>${parsed.problems.length} problems</b> (pairs with a problem are left out):</p>
+        <pre>${parsed.problems.slice(0, 30).join('\n') || 'none'}</pre><p>Press SPACE to continue.</p></div>`
+    });
+  }
+
+  // ---- sound check: 3 checks (first animal, last animal, both animals) ----
+  // Each phrase can be played as many times as the participant likes BEFORE the question appears. A wrong answer gives a new phrase
+  // (up to AUDIO_CHECK_MAX_TRIES per check); the phrases are stimulus files this participant will NOT hear in the task.
+  const usedAudio = new Set(LIST.map(t => t.audio_file));
+  const allAudio = parsed.complete.flatMap(n => Object.values(parsed.items[n])).map(it => it.audio);
+  const spare = allAudio.filter(a => !usedAudio.has(a));
+  const SC_KINDS = ['first', 'last', 'both'];
+  const scPool = jsPsych.randomization.shuffle(spare.length >= SC_KINDS.length * AUDIO_CHECK_MAX_TRIES ? spare : allAudio);
+  const scSample = (arr, n) => jsPsych.randomization.sampleWithoutReplacement(arr, n);
+  const scShuffle = arr => jsPsych.randomization.shuffle(arr);
+  const scItems = SC_KINDS.map((kind, ci) => Array.from({ length: AUDIO_CHECK_MAX_TRIES },
+    (_, a) => makeSoundCheckItem(kind, scPool[(ci * AUDIO_CHECK_MAX_TRIES + a) % scPool.length], scSample, scShuffle)));
+  const scState = { completed: 0, errors: 0, audio: null };
+
+  timeline.push({
+    type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'sound_check_intro' },
+    stimulus: `<div class="instr"><h3>Sound check</h3>
+      <p>This study needs sound. Please put on headphones (recommended), turn your volume up to a comfortable level, and sit somewhere quiet.</p>
+      <p>You will do ${SC_KINDS.length} short sound checks. In each one, click the <b>Play</b> button to hear a phrase in Spanish. You can play it as many times as you like, and then answer a question about what you heard.</p>
+      <p><b>Please do not refresh or close this page during the study. If you refresh, you will lose your progress.</b></p>
+      <p>Press the space bar to begin.</p></div>`
+  });
+  SC_KINDS.forEach((kind, ci) => {
+    const st = { attempt: 0, passed: false };
+    timeline.push({
+      timeline: [
+        {
+          type: jsPsychSurveyHtmlForm, button_label: 'Submit answer', data: { task: 'sound_check', check: kind },
+          html: () => soundCheckHtml(scItems[ci][st.attempt], ci + 1, SC_KINDS.length),
+          on_load: () => attachSoundCheck(scItems[ci][st.attempt], scState, SOUND_CHECK_MIN_PLAYS),
+          on_finish: d => {
+            const it = scItems[ci][st.attempt];
+            if (scState.audio) scState.audio.pause();
+            d.heard = (d.response || {}).heard; st.passed = d.heard === it.answer;
+            d.sound_check_passed = st.passed ? 1 : 0; d.sound_clip = it.file; d.sound_attempt = st.attempt + 1;
+            d.sound_plays = scState.completed; d.sound_load_errors = scState.errors;
+            st.attempt++;
+          }
+        },
+        {
+          timeline: [{ type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'sound_check_retry' },
+            stimulus: '<div class="instr"><p>That was not the right answer, so we could not confirm that you can hear the audio clearly.</p>' +
+              '<p>Please check that your headphones or speakers are connected, that your device is not muted, and turn the volume up. You will hear a different phrase this time.</p>' +
+              '<p>Press the space bar to continue.</p></div>' }],
+          conditional_function: () => !st.passed && st.attempt < AUDIO_CHECK_MAX_TRIES
+        }
+      ],
+      loop_function: () => !st.passed && st.attempt < AUDIO_CHECK_MAX_TRIES
+    });
+    timeline.push({            // this check was failed on every attempt: end the study here
+      timeline: [{
+        type: jsPsychHtmlKeyboardResponse, trial_duration: 10, stimulus: '', data: { task: 'sound_check_failed' },
+        on_finish: () => {
+          endedEarly = true;
+          jsPsych.endExperiment('<div class="instr"><p>We could not confirm that your audio is working, so the study cannot continue.</p>' +
+            '<p>Please fix your sound (headphones connected, volume up, not muted) and open the study link again. You can now close this window.</p></div>');
+        }
+      }],
+      conditional_function: () => !st.passed
+    });
+  });
+  timeline.push({ type: jsPsychHtmlKeyboardResponse, trial_duration: 10, stimulus: '', data: { task: 'sound_check_done' },
+    on_finish: () => jsPsych.data.addProperties({ sound_check_passed: 1 }) });
+
+  // ---- questionnaires: BLP, then additional questions ----
+  const questionnaireTimeline = [
+    { type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'questionnaire_intro' },
+      stimulus: '<div class="instr"><h3>Language History Questionnaire</h3>' +
+        '<p>The following questions are about your language history and experience (about 10–15 minutes). ' +
+        'Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>' +
+        '<p><b>Please do not refresh or close this page. If you refresh, you will lose your progress.</b></p>' +
+        '<p>Press the space bar to begin.</p></div>' },
+    ...buildQuestionnaire((ans, d) => { Object.assign(d, ans); jsPsych.data.addProperties(ans); })
+  ];
+  if (QUESTIONNAIRES_FIRST) timeline.push(...questionnaireTimeline);
+
+  // ---- picture-matching task ----
+  timeline.push({
+    type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'instructions' },
+    stimulus: `<div class="instr">
+      <p><b>Instructions.</b> In each trial you will hear a phrase in Spanish and see two pictures.
+      Choose the picture that matches the phrase: press the <b>left arrow ←</b> for the picture on the left,
+      or the <b>right arrow →</b> for the picture on the right. Respond as quickly and accurately as you can.
+      Each trial starts when you press the space bar.</p>
+      <p><b>Please do not refresh or close this page during the study. If you refresh, you will lose your progress.</b></p>
+      <p>Press the space bar to begin.</p></div>`
+  });
+
+  LIST.forEach((t, i) => {
+    timeline.push({
+      type: jsPsychHtmlKeyboardResponse, choices: [' '],
+      stimulus: '<p style="font-size:28px">+</p><p>Press the space bar to start the next trial</p>',
+      data: { task: 'start_screen' }
+    });
+    timeline.push({
+      type: jsPsychAudioKeyboardResponse,
+      stimulus: t.audio,
+      choices: ['ArrowLeft', 'ArrowRight'],
+      response_allowed_while_playing: RESPONSE_ALLOWED_WHILE_PLAYING,
+      prompt: `<div class="pics"><img src="${t.pic_left}" style="width:${IMG_WIDTH}px">
+               <img src="${t.pic_right}" style="width:${IMG_WIDTH}px"></div>`,
+      data: { task: 'test', participant: PID, trial: t.trial, block: t.block, structure: t.structure,
+              pair: t.pair, audio: t.audio_file, pic_left: t.pic_left_file,
+              pic_right: t.pic_right_file, correct_response: t.correct_response },
+      on_finish: d => {
+        d.correct = (d.response !== null && d.response.toLowerCase() === d.correct_response.toLowerCase()) ? 1 : 0;
+      }
+    });
+    if ((i + 1) % BLOCK_SIZE === 0 && i + 1 < LIST.length) {
+      timeline.push({
+        type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'break' },
+        stimulus: '<p>Optional break.</p><p>Press the space bar to continue.</p>'
+      });
+    }
+  });
+
+  if (!QUESTIONNAIRES_FIRST) {
+    timeline.push({
+      type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'task_done' },
+      stimulus: '<div class="instr"><p>You have finished the listening task. Thank you!</p><p>Press the space bar to continue to the last part of the study.</p></div>'
+    });
+    timeline.push(...questionnaireTimeline);
+  }
+
+  // ---- debrief (last screen; reaching the end marks the participant as complete) ----
+  timeline.push({
+    type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'end_screen' },
+    stimulus: '<div class="instr"><h3>Debriefing</h3>' +
+      '<p>This study examined how people understand Spanish: the picture-matching task you completed is adapted from Fuchs, Muegge, and Shea (2026), “Do heritage speakers work harder in their heritage language? A dual task study of cognitive effort in bilingual language processing,” <i>Bilingualism: Language and Cognition</i>, which compares Spanish comprehension across speakers with different language backgrounds. ' +
+      'Thank you very much for your participation! Please do not share any information about this study with other potential participants.</p>' +
+      '<p>Press the space bar to submit your data. Please wait until the final thank-you screen appears before closing this window.</p></div>',
+    on_finish: () => jsPsych.data.addProperties({ completion_status: 'complete' })
+  });
+
+  jsPsych.run(timeline);
+})();
+</script>
+</body>
+</html>
