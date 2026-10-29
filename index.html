@@ -8,11 +8,13 @@
   <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-audio-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.2"></script>
   <script src="https://unpkg.com/@jspsych/extension-pipe@0.2.0"></script>
   <style>
     .pics { display:flex; gap:100px; justify-content:center; align-items:center; margin-top:30px; }
     .instr { max-width:800px; margin:auto; text-align:left; line-height:1.5; }
+    .consent { max-width:850px; margin:auto; text-align:left; font-size:14px; line-height:1.45; }
     .report { max-width:900px; margin:auto; text-align:left; font-size:15px; }
     .survey { max-width:900px; margin:auto; text-align:left; font-size:16px; line-height:1.4; }
     .survey h3 { margin-top:0; }
@@ -237,17 +239,26 @@ const attachSiblingToggle = () => {
 
 // ---------- the questionnaire pages: BLP (English-Spanish) first, then the additional questions ----------
 const N_QPAGES = 11;
-function buildQuestionnaire() {
+// onAnswers(obj) is called after every questionnaire page with {question_name: answer}; main() writes it into the data (one column per question)
+function buildQuestionnaire(onAnswers) {
   const pages = [];
   let page = 0;
   const add = (task, title, body, onLoad, intro) => {
     page++;
+    let boxes = [];
     pages.push({
       type: jsPsychSurveyHtmlForm,
       button_label: 'Continue',
       html: `<div class="survey"><h3>Language History Questionnaire (${page} of ${N_QPAGES})</h3><p class="hint">Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>${intro ? `<p class="hint">${intro}</p>` : ''}${title ? `<h4>${title}</h4>` : ''}${body}</div>`,
       data: { task },
-      on_load: onLoad || (() => {})
+      on_load: () => { boxes = [...document.querySelectorAll('.survey input[type=checkbox]')].map(e => e.name); (onLoad || (() => {}))(); },
+      on_finish: d => {
+        const r = d.response || {}, out = Object.assign({}, r);
+        // "select all that apply": unticked boxes are missing from the response -> record them as 0 (ticked = 1)
+        // (sibling follow-ups stay blank if the participant has no siblings)
+        boxes.forEach(n => { if (!(n in out) && !(n.startsWith('sib_') && r.sib_has !== 'yes')) out[n] = '0'; });
+        onAnswers(out, d);
+      }
     });
   };
   const yrs = (first, extra) => [first, ...range(1, 19).map(n => [String(n), String(n)]), ['20+', '20+'], ...(extra || [])];
@@ -482,9 +493,9 @@ function attachSoundCheck(item, st, minPlays) {
       const sonaUrl = SONA_COMPLETION_URL.replace('%SURVEY_CODE%', encodeURIComponent(sonaCode));
       const creditHtml = SONA_COMPLETION_URL
         ? `<p><a href="${sonaUrl}"><b>Click here to return to SONA and receive your credit.</b></a></p>`
-        : '<p>Please keep this code. It will be used to give you credit.</p>';
+        : '';
       document.body.innerHTML = `<div class="instr" style="margin-top:80px;text-align:center"><h3>Thank you! You have completed the study.</h3>` +
-        `<p>Your completion code is: <b style="font-size:24px">${completion_code}</b></p>${creditHtml}<p>You may now close this window.</p></div>`;
+        `${creditHtml}<p>You may now close this window.</p></div>`;
     }
   };
   if (!NOSAVE) {
@@ -495,9 +506,8 @@ function attachSoundCheck(item, st, minPlays) {
   }
   const jsPsych = initJsPsych(initOptions);
   var subject_id = jsPsych.randomization.randomID(10);
-  // completion code: saved in every row of the data so you can match the code a participant reports to their CSV
-  var completion_code = 'RC-' + hashSeed('done-' + subject_id).toString(36).toUpperCase().padStart(6, '0').slice(0, 6);
-  jsPsych.data.addProperties({ subject_id: subject_id, completion_code: completion_code });
+  // completion_status is in every row of the CSV: "incomplete" until the participant reaches the very end of the study, then "complete"
+  jsPsych.data.addProperties({ subject_id: subject_id, completion_status: 'incomplete' });
 
   // This participant's list is generated from their random ID (or from ?p= when testing)
   const PID = params.get('p') || subject_id;
@@ -505,6 +515,29 @@ function attachSoundCheck(item, st, minPlays) {
   const LIST = buildList(parsed, PID, PER_TYPE, LIST_SEED);
 
   const timeline = [];
+
+  // ---- consent form (first screen) ----
+  timeline.push({
+    type: jsPsychHtmlButtonResponse,
+    choices: ['I agree to participate', 'I do not agree'],
+    data: { task: 'consent' },
+    stimulus: `<div class="consent">
+<h3>Consent to Participate in Research</h3>
+<p>You are being invited to participate in a research study titled “Reproducibility of Psychological Science and Instruction.” This study is being done by Dr. Bria Long from UC San Diego and associated graduate students in Experimental Methods course. You were selected to participate in this study because you are an adult in the U.S. and have been a represented population in previous psychology studies.</p>
+<p>The purpose of this study is to better understand how well previously published studies in the psychological field replicate online and with different populations. Your participation in this research should last approximately 5-30 minutes  If you agree to take part in this study, you may be asked to view a set of stimuli, including pictures, sounds, written text, or videos and then giving some responses via key-presses, verbally, or with paper-and-pencil. We may also observe your choices or preferences among an array of stimuli.  These stimuli will be taken directly from or closely adapted from studies that already exist in the published psychological literature. Stimuli will include, e.g., pictures of objects and human faces, audio and video clips, short text passages, etc. None of the stimuli will be disturbing, threatening, or offensive. The online and in-person experiments described in this protocol will take no more than 30 minutes. An example game you might play would be to click on an image on the screen that matches a word you hear being said out loud. Your total expected time commitment for this study is between 5-30 minutes, and is specified in the study description.</p>
+<p>Your participation in this study is completely voluntary and you can withdraw at any time. Choosing not to participate or withdrawing will result in no penalty or loss of benefits to which you are entitled. You are free to skip any question that you choose.</p>
+<p>We will not be asking for any personally identifying information, and we will handle responses as confidentially as possible. Your SONA or Prolific IDs will never be tied to your responses on this survey. However, we cannot guarantee the confidentiality of information transmitted over the Internet. To minimize this risk, data containing anything that might be personally identifiable (e.g. Prolific IDs or IP addresses) will be encrypted on transfer and storage and will only be accessible to qualified lab personnel. We will be keeping data collected as part of this experiment indefinitely. This anonymized data (containing neither Prolific IDs nor IP addresses) may be shared with the scientific community or with other participants to be used as stimuli in future studies.</p>
+<p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s),  Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
+<p>By participating in this research you are indicating that you are at least 18 years old, have read this consent form, and agree to participate in this research study. Please keep this consent form for your records.</p></div>`,
+    on_finish: d => {
+      d.consent = d.response === 0 ? 'agreed' : 'declined';
+      jsPsych.data.addProperties({ consent: d.consent });
+      if (d.response !== 0) {                      // declined: stop here (file is saved as incomplete, consent = declined)
+        endedEarly = true;
+        jsPsych.endExperiment('<div class="instr" style="margin-top:80px;text-align:center"><p>You chose not to participate. Thank you for your time. You can now close this window.</p></div>');
+      }
+    }
+  });
 
   if (!participantId) {
     timeline.push({
@@ -579,7 +612,7 @@ function attachSoundCheck(item, st, minPlays) {
           on_finish: d => {
             const it = scItems[ci][st.attempt];
             if (scState.audio) scState.audio.pause();
-            st.passed = (d.response || {}).heard === it.answer;
+            d.heard = (d.response || {}).heard; st.passed = d.heard === it.answer;
             d.sound_check_passed = st.passed ? 1 : 0; d.sound_clip = it.file; d.sound_attempt = st.attempt + 1;
             d.sound_plays = scState.completed; d.sound_load_errors = scState.errors;
             st.attempt++;
@@ -618,7 +651,7 @@ function attachSoundCheck(item, st, minPlays) {
         'Please answer to the best of your knowledge. There are no correct or incorrect answers.</p>' +
         '<p><b>Please do not refresh or close this page. If you refresh, you will lose your progress.</b></p>' +
         '<p>Press the space bar to begin.</p></div>' },
-    ...buildQuestionnaire()
+    ...buildQuestionnaire((ans, d) => { Object.assign(d, ans); jsPsych.data.addProperties(ans); })
   ];
   if (QUESTIONNAIRES_FIRST) timeline.push(...questionnaireTimeline);
 
@@ -670,10 +703,14 @@ function attachSoundCheck(item, st, minPlays) {
     timeline.push(...questionnaireTimeline);
   }
 
+  // ---- debrief (last screen; reaching the end marks the participant as complete) ----
   timeline.push({
     type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'end_screen' },
-    stimulus: '<div class="instr"><p>You have reached the end of the study. Thank you!</p>' +
-      '<p>Press the space bar to submit your data. Please wait until your completion code appears before closing this window.</p></div>'
+    stimulus: '<div class="instr"><h3>Debriefing</h3>' +
+      '<p>This study examined how people understand Spanish: the picture-matching task you completed is adapted from Fuchs, Muegge, and Shea (2026), “Do heritage speakers work harder in their heritage language? A dual task study of cognitive effort in bilingual language processing,” <i>Bilingualism: Language and Cognition</i>, which compares Spanish comprehension across speakers with different language backgrounds. ' +
+      'Thank you very much for your participation! Please do not share any information about this study with other potential participants.</p>' +
+      '<p>Press the space bar to submit your data. Please wait until the final thank-you screen appears before closing this window.</p></div>',
+    on_finish: () => jsPsych.data.addProperties({ completion_status: 'complete' })
   });
 
   jsPsych.run(timeline);
