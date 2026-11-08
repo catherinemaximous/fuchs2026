@@ -408,7 +408,7 @@ participants <- raw %>%
   group_by(source_file, participant_id) %>%
   summarise(spanish_start = first_nonempty(.data[[age_col]]), .groups = "drop") %>%
   mutate(spanish_start_num = case_when(spanish_start == "20+" ~ 20, TRUE ~ suppressWarnings(as.numeric(spanish_start))),
-         group = case_when(spanish_start_num <= 6 ~ "HS", spanish_start_num > 7 ~ "L2", TRUE ~ NA_character_))
+         group = case_when(spanish_start_num <= 6 ~ "HS", spanish_start_num >= 7 ~ "L2", TRUE ~ NA_character_))
 
 # Participants from the early version of the study (no questionnaire columns): assign to the ERB group (L2) by hand
 erb_manual <- c("DANNGU32", "CATMAX61", "CCCMMM67")   # participant_id in NOID_bfwzm.csv, NOID_epw4e.csv, NOID_dko4n.csv
