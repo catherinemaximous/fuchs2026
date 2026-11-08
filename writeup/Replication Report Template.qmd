@@ -35,8 +35,233 @@ I am hoping through this project, to learn how to build a task through jsPsych t
 
 
 ### Power Analysis
+####Original effect size, power analysis for samples to achieve 80%, 90%, 95% power to detect that effect size.  Considerations of feasibility for selecting planned sample size.
 
-Original effect size, power analysis for samples to achieve 80%, 90%, 95% power to detect that effect size.  Considerations of feasibility for selecting planned sample size.
+The key test for this project is a group main effect (HS vs. ERB) on single-task picture-matching accuracy, from a logistic mixed-effects.
+
+To detect the effect of subject relatives being more accurate than object relatives, the following sample size is needed for at 80%, 90%, and 95% power. The paper reported that heritage speakers (HS) were being more accurate on Reduced Relatives than on Subject Relatives. They reported a z-value of 3.86 which is a strong evidence for the effect. The original study included 31 heritage speakers. I have taken the following z-value and divided it by the square root of the number of people tested in the paper to see what is the effect size for this within-person comparison. This shows me the effect size of the original paper which is 0.69, a medium effect. To detect this effect again assuming that the effect is only half as big as the paper's then my sample size needs to be bigger than the paper. At 80%, I would need 68 people, 90 at 90% power, and 110 at 95% power. Due to limitations in time and amount of sign ups that I may receive through SONA, 68 people is the
+the most feasible sample size. 
+
+```{r}
+library(pwr)
+dz <- 3.86 / sqrt(31)
+dz
+sapply(c(.8, .9, .95), \(p) pwr.t.test(d = dz / 2, power = p, type = "paired")$n)
+```
+```{r}
+library(pwr)
+
+dz_ci <- function(dz, n, level = .95) {
+  se <- sqrt(1 / n + dz^2 / (2 * n))
+  z <- qnorm(1 - (1 - level) / 2)
+  c(lower = dz - z * se, upper = dz + z * se)
+}
+
+# ================= HS, N = 31 =================
+
+# ---- HS: RR vs. SR, z = 3.86 ----
+dz_hs_rr_sr <- 3.86 / sqrt(31)
+dz_hs_rr_sr
+
+# Half the original effect
+pwr.t.test(d = dz_hs_rr_sr / 2, power = .8, type = "paired")$n
+
+# 2.5x the original N (people)
+2.5 * 31
+
+# Safeguard power: lower end of a 60% CI on the original effect
+dz_hs_rr_sr_safe <- dz_ci(dz_hs_rr_sr, n = 31, level = .60)["lower"]
+dz_hs_rr_sr_safe
+pwr.t.test(d = dz_hs_rr_sr_safe, power = .8, type = "paired")$n
+
+# ---- HS: SR vs. OR, z = 29.52 ----
+dz_hs_sr_or <- 29.52 / sqrt(31)
+dz_hs_sr_or
+
+# Half the original effect
+pwr.t.test(d = dz_hs_sr_or / 2, power = .8, type = "paired")$n
+
+# 2.5x the original N (people)
+2.5 * 31
+
+# Safeguard power: lower end of a 60% CI on the original effect
+dz_hs_sr_or_safe <- dz_ci(dz_hs_sr_or, n = 31, level = .60)["lower"]
+dz_hs_sr_or_safe
+pwr.t.test(d = dz_hs_sr_or_safe, power = .8, type = "paired")$n
+
+# ================= ERB, N = 21 =================
+
+# ---- ERB: RR vs. SR, z = 2.14 ----
+dz_erb_rr_sr <- 2.14 / sqrt(21)
+dz_erb_rr_sr
+
+# Half the original effect
+pwr.t.test(d = dz_erb_rr_sr / 2, power = .8, type = "paired")$n
+
+# 2.5x the original N (people)
+2.5 * 21
+
+# Safeguard power: lower end of a 60% CI on the original effect
+dz_erb_rr_sr_safe <- dz_ci(dz_erb_rr_sr, n = 21, level = .60)["lower"]
+dz_erb_rr_sr_safe
+pwr.t.test(d = dz_erb_rr_sr_safe, power = .8, type = "paired")$n
+
+# ---- ERB: SR vs. OR, z = 24.12 ----
+dz_erb_sr_or <- 24.12 / sqrt(21)
+dz_erb_sr_or
+
+# Half the original effect
+pwr.t.test(d = dz_erb_sr_or / 2, power = .8, type = "paired")$n
+
+# 2.5x the original N (people)
+2.5 * 21
+
+# Safeguard power: lower end of a 60% CI on the original effect
+dz_erb_sr_or_safe <- dz_ci(dz_erb_sr_or, n = 21, level = .60)["lower"]
+dz_erb_sr_or_safe
+pwr.t.test(d = dz_erb_sr_or_safe, power = .8, type = "paired")$n
+```
+For 80% power, to find the SR > OR effect which is the main effect, I need at least 78 heritage speakers and if I am able to recruit ERBs which are L2 speakers, I would need a sample size of 53. Since I am not sure which population I may collect more, I am going to aim for collecting both and seeing if I can get a big enough sample size to see a true effect. 
+
+4. Make a power curve
+
+```{r}
+library(pwr)
+library(tidyverse)
+
+# effect sizes (d_z) from the planning step, for the RR vs. SR contrast
+effects <- tibble(
+  scenario = c("HS: original", "HS: half effect", "HS: safeguard",
+               "ERB: original", "ERB: half effect", "ERB: safeguard"),
+  d = c(0.693, 0.347, 0.525,
+        0.467, 0.234, 0.274)
+)
+
+# power at each N (N = number of people, since the test is paired)
+curve <- effects |>
+  cross_join(tibble(n = 5:150)) |>
+  mutate(power = map2_dbl(d, n, \(d, n) pwr.t.test(n = n, d = d, type = "paired")$power))
+
+ggplot(curve, aes(n, power, colour = scenario)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = .8, linetype = "dashed") +
+  labs(x = "Number of people", y = "Power", title = "RR vs. SR") +
+  theme_minimal()
+
+# effect sizes (d_z) from the planning step, for the SR vs. OR contrast
+effects_or <- tibble(
+  scenario = c("HS: original", "HS: half effect", "HS: safeguard",
+               "ERB: original", "ERB: half effect", "ERB: safeguard"),
+  d = c(5.302, 2.651, 4.715,
+        5.263, 2.632, 4.556)
+)
+
+# the effect is huge, so power reaches 1 almost immediately: use a much smaller range of N
+curve_or <- effects_or |>
+  cross_join(tibble(n = 3:20)) |>
+  mutate(power = map2_dbl(d, n, \(d, n) pwr.t.test(n = n, d = d, type = "paired")$power))
+
+ggplot(curve_or, aes(n, power, colour = scenario)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = .8, linetype = "dashed") +
+  labs(x = "Number of people", y = "Power", title = "SR vs. OR") +
+  theme_minimal()
+```
+
+```{r}
+example_experiment <- function(n, effect) {
+  treatment <- rnorm(n, mean = effect, sd = 1)
+  control <- rnorm(n, mean = 0, sd = 1)
+  t.test(treatment, control, var.equal = TRUE)$p.value
+}
+
+set.seed(91)
+# HS vs. ERB overall accuracy: d = 0.64, 40 per group
+mean(map_dbl(1:500, \(i) example_experiment(40, effect = 0.64)) < .05) # simulation
+pwr.t.test(n = 40, d = 0.64)$power # formula
+mean(map_dbl(1:500, \(i) example_experiment(40, effect = 0)) < .05) # should be near .05
+
+# within-person contrasts: one difference score per person
+paired_experiment <- function(n, effect) {
+  differences <- rnorm(n, mean = effect, sd = 1)
+  t.test(differences)$p.value
+}
+
+set.seed(93)
+# RR vs. SR, HS, half effect (0.347), 68 people
+mean(map_dbl(1:500, \(i) paired_experiment(68, effect = 0.347)) < .05) # simulation
+pwr.t.test(n = 68, d = 0.347, type = "paired")$power # formula
+# SR vs. OR, HS, half effect (2.651), 5 people
+mean(map_dbl(1:500, \(i) paired_experiment(5, effect = 2.651)) < .05)
+mean(map_dbl(1:500, \(i) paired_experiment(68, effect = 0)) < .05) # should be near .05
+
+interaction_experiment <- function(n, effect) {
+  cells <- expand_grid(a = c(-0.5, 0.5), b = c(-0.5, 0.5), person = 1:n) |>
+    mutate(y = effect * a * b + rnorm(n(), mean = 0, sd = 1))
+  summary(lm(y ~ a * b, data = cells))$coefficients["a:b", "Pr(>|t|)"]
+}
+
+set.seed(92)
+# group (HS vs. ERB) x RC type (RR vs. SR), 64 per cell, effect = 0.65
+mean(map_dbl(1:500, \(i) interaction_experiment(64, effect = 0.65)) < .05)
+```
+```{r}
+library(tidyverse)
+
+one_experiment <- function(n, effect) {
+  # 1. simulate one dataset: n people in total, each with one difference score
+  #    (RR minus SR, or SR minus OR); the true mean difference is effect (in SD units)
+  differences <- rnorm(n, mean = effect, sd = 1)
+  # 2. confirmatory test: paired t-test, which is a one-sample t-test on the differences
+  # 3. return the p-value
+  t.test(differences)$p.value
+}
+
+set.seed(95)
+
+# sanity check: with no true effect, this should be near .05
+mean(map_dbl(1:5000, \(i) one_experiment(80, effect = 0)) < .05)
+
+# ---- RR vs. SR (the contrast that sets the sample size) ----
+scenarios_rr_sr <- tibble(
+  scenario = c("HS: half effect", "ERB: half effect", "ERB: safeguard"),
+  effect   = c(0.35, 0.23, 0.27)
+)
+
+curve_rr_sr <- scenarios_rr_sr |>
+  cross_join(tibble(n = seq(20, 200, by = 20))) |>
+  mutate(power = map2_dbl(n, effect,
+                          \(this_n, this_effect) mean(map_dbl(1:5000, \(i) one_experiment(this_n, effect = this_effect)) < .05)))
+
+ggplot(curve_rr_sr, aes(x = n, y = power, colour = scenario)) +
+  geom_line() +
+  geom_hline(yintercept = .8, linetype = "dashed") +
+  ylim(0, 1) +
+  labs(title = "RR vs. SR", x = "Number of people", y = "Power")
+
+# ---- SR vs. OR (huge effect, so a much smaller range of n) ----
+scenarios_sr_or <- tibble(
+  scenario = c("HS: half effect", "ERB: half effect"),
+  effect   = c(2.65, 2.63)
+)
+
+curve_sr_or <- scenarios_sr_or |>
+  cross_join(tibble(n = seq(4, 20, by = 2))) |>
+  mutate(power = map2_dbl(n, effect,
+                          \(this_n, this_effect) mean(map_dbl(1:5000, \(i) one_experiment(this_n, effect = this_effect)) < .05)))
+
+ggplot(curve_sr_or, aes(x = n, y = power, colour = scenario)) +
+  geom_line() +
+  geom_hline(yintercept = .8, linetype = "dashed") +
+  ylim(0, 1) +
+  labs(title = "SR vs. OR", x = "Number of people", y = "Power")
+```
+
+> The original study (N = 31 HSs)reported a within-person SR vs. OR effect of d_Z = 5.30 (z=29.52). Because published effects tend to be inflated, we planned for half that effect, d_z=2.65, which needs only 4 participants for 80% power.Even a more conservative estimate, half of the effect implied by the log-odds coefficient (d=1.40), needs only 7. Sample size will therefore be set by feasibility and the analyses. To find the RR vs. SR effect, d_z = .69 (z = 3.86), I will run 78 HSs, which is about 2.5 times the original sample. This gives about 80% power to reject d33=.28, the effect the original study had 33% power to detect (Simonsohn, 2015). It also gives 80% power for effects of d_Z = .32 or larger. A non-significant result would tell us whether the effet is as larger as the original study could have detected, but not whether there is a smaller effect below about d_z =.3. 
+
+> The original study (N = 21 ERBs)reported a within-person SR vs. OR effect of d_z = 5.26 (z = 24.12). Because published effects tend to be inflated, we planned for half that effect, d_z = 2.63, needs 4 participants for 80% power, and half of the effect implied by the log-odds coefficient (d = 0.91) needs 12. For the RR vs. SR d_z = .47 (z = 2.14), with a smaller and less reliable effect than for HSs. Planning for half that effect, d_z = .23, would need 146 participants for 80% power. This is more than I can recruit this quarter, so I will plan to run 53 ERBs which is 2.5 times the original sample. This gives about 80% power to reject d33 = .35, the effect the original study had 33% power to detect. It also gives 80% power for effects of d_z = .39 or larger. A non-significant result would tell us whether the effect is as large as the original study could have detected, but not whether there is a smaller effect, below about d_z = .4.
+
+
 
 ### Planned Sample
 Planned sample size and/or termination rule, sampling frame, known demographics if any, preselection rules if any.
@@ -140,20 +365,248 @@ Any differences from what was described as the original plan, or “none”.
 Data preparation following the analysis plan.
 	
 ```{r include=F}
+
 ### Data Preparation
 
 #### Load Relevant Libraries and Functions
+needed  <- c("tidyverse", "lme4")
+missing <- needed[!needed %in% rownames(installed.packages())]
+if (length(missing) > 0) install.packages(missing)
+library(tidyverse)
+library(purrr)      # map_dfr()
+library(dplyr)
+library(readr)
+library(stringr)
+library(ggplot2)
+library(lme4)
 
 #### Import data
 
+data_dir <- "C:/Users/cathe/Documents/GitHub/fuchs2026/data"       # the participant CSVs from DataPipe
+out_dir  <- "C:/Users/cathe/Documents/GitHub/fuchs2026/results"    # figure and model summaries are saved here
+dir.create(out_dir, showWarnings = FALSE)
+
+files <- list.files(data_dir, pattern = "\\.csv$", full.names = TRUE)
+stopifnot("No CSV files found in data_dir" = length(files) > 0)
+raw <- map_dfr(files, function(f) {
+  read_csv(f, col_types = cols(.default = col_character()), show_col_types = FALSE) %>%
+    mutate(source_file = basename(f))
+})
+raw <- raw %>%                       # participant ID, the same in every row of a file
+  group_by(source_file) %>%
+  mutate(participant_id = dplyr::first(na.omit(c(participant_id, subject_id)))) %>%
+  ungroup()
+
+# Group membership from the questionnaire question "At what age did you start learning ... [Spanish]":
+#   0-6 years old  -> HS  |  older than 7 (7-19 and "20+") -> L2 (= ERB)  
+
+age_col <- "1. At what age did you start learning the following languages? [Spanish]"
+stopifnot("Column for the age of learning Spanish not found" = age_col %in% names(raw))
+first_nonempty <- function(x) { x <- x[!is.na(x) & x != ""]; if (length(x) == 0) NA_character_ else x[1] }
+
+participants <- raw %>%
+  group_by(source_file, participant_id) %>%
+  summarise(spanish_start = first_nonempty(.data[[age_col]]), .groups = "drop") %>%
+  mutate(spanish_start_num = case_when(spanish_start == "20+" ~ 20, TRUE ~ suppressWarnings(as.numeric(spanish_start))),
+         group = case_when(spanish_start_num <= 6 ~ "HS", spanish_start_num > 7 ~ "L2", TRUE ~ NA_character_))
+
+# Participants from the early version of the study (no questionnaire columns): assign to the ERB group (L2) by hand
+erb_manual <- c("DANNGU32", "CATMAX61", "CCCMMM67")   # participant_id in NOID_bfwzm.csv, NOID_epw4e.csv, NOID_dko4n.csv
+participants <- participants %>%
+  mutate(group = if_else(participant_id %in% erb_manual, "L2", group))
+print(participants %>% count(group))                   # check: these three should now be counted under L2
+
+# the same participant ID in more than one file = repeat attempt: keep the earliest file only
+dup_ids <- participants %>% count(participant_id) %>% filter(n > 1)
+if (nrow(dup_ids) > 0) {
+  warning("Same participant_id in more than one file; keeping the earliest file of each:"); print(dup_ids)
+  file_time <- tibble(source_file = basename(files), mtime = file.info(files)$mtime)
+  participants <- participants %>% left_join(file_time, by = "source_file") %>%
+    arrange(participant_id, mtime) %>% group_by(participant_id) %>% slice(1) %>% ungroup() %>% select(-mtime)
+}
+
+cat("\nGroup assignment (from age of starting Spanish):\n")
+print(participants %>% count(group, spanish_start_num), n = Inf)
+cat("Not classified (exactly 7 years or missing), left out:", sum(is.na(participants$group)), "\n")
+
+
+# the raw-data table the original code starts from, with the same column names
+singletaskraw <- raw %>%
+  filter(task == "test") %>%
+  inner_join(participants %>% filter(!is.na(group)) %>% select(source_file, group), by = "source_file") %>%
+  transmute(subject       = participant_id,
+            group         = group,
+            condition     = "audio only",              # all picture-matching trials
+            aud_diff      = structure,                 # RR / SR / OR
+            audiostimulus = audio,                     # the audio file = the item
+            aud_corr      = as.integer(correct),       # 1 = correct
+            reaction_time = as.numeric(rt))            # ms from audio onset, as in the original data (median ~2.7 s there too)
+
 #### Data exclusion / filtering
+## ===================================
+## (LINGUISTIC TASK) SINGLE-TASK PICTURE-MATCHING: CLEANING
+## ===================================
+
+# take out outliers (same as before, anything faster than 150ms
+# and anything outside of 2SDs of the mean by participant by condition)
+# NOTE: the original code uses 2.5 SDs (this is what gives their reported 2.8% removed, although the text says 2 SDs)
+single_audio <- singletaskraw %>% filter(condition=="audio only")
+print(dim(single_audio))
+single_audio_clean <- single_audio %>% 
+  filter(reaction_time > 150) %>%
+  group_by(subject, aud_diff) %>% 
+  filter(abs(reaction_time - mean(reaction_time)) < (sd(reaction_time) * 2.5))
+print(dim(single_audio_clean))
+print((nrow(single_audio) - nrow(single_audio_clean)) / nrow(single_audio))   # share of data removed (original: 2.8%)
+
+single_audio_clean <- single_audio_clean %>% mutate(aud_diff=factor(aud_diff,levels=c("RR","SR","OR")))
+
 
 #### Prepare data for analysis - create columns etc.
+
+### ==============================================
+### SINGLE-TASK PICTURE-MATCHING ACCURACY: ANALYSIS
+### ==============================================
+
+LING_foranalysis <- single_audio_clean
+LING_foranalysis <- LING_foranalysis[LING_foranalysis$group!= "Gen1.5",]
+LING_foranalysis <- droplevels(ungroup(LING_foranalysis))   # ungroup() only removes the dplyr grouping, no effect on results
+
+# prepare dataset for analysis
+# deviation-coding for group 
+LING_foranalysis$group <- as.factor(LING_foranalysis$group)
+n_groups <- nlevels(LING_foranalysis$group)
+cat("\nGroups in the analysis:", levels(LING_foranalysis$group), "\n")
+if (n_groups == 2) {
+  contrasts(LING_foranalysis$group) = contr.sum(2)   # CHANGED (original contr.sum(3)): two groups, contrast1 = HS
+  # create new level so we can see results for L2s
+  LING_foranalysis$group_relevel <- relevel(LING_foranalysis$group, ref="L2")
+  contrasts(LING_foranalysis$group_relevel) = contr.sum(2)   # contrast1 = L2
+}
+
+
+# forward-difference coding for difficulty levels
+my.forward.diff = matrix(c(2/3, -1/3, -1/3, 1/3, 1/3, -2/3), ncol = 2)
+print(my.forward.diff)
+contrasts(LING_foranalysis$aud_diff) = my.forward.diff     # contrast1 = RR vs SR; contrast2 = SR vs OR
 ```
 
 ### Confirmatory analysis
 
-The analyses as specified in the analysis plan.  
+The analyses as specified in the analysis plan. 
+
+```{r}
+# The original tried these random-effects structures in this order (singular / failed to converge / failed to converge) and
+# kept the first model that worked, which in their data was the item-intercept model. This helper does the same selection:
+# it takes the first formula that fits without any warning and without a singular fit.
+# it takes the first formula that fits without any warning and without a singular fit.
+# TRUE if every grouping factor of the random effects has at least 2 levels in the data
+# (a term such as (1|subject) cannot be fitted when the data contain only ONE participant)
+
+grouping_ok <- function(f, data) {
+  bars <- lme4::findbars(f)
+  all(vapply(bars, function(bar) length(unique(data[[deparse(bar[[3]])]])) > 1, logical(1)))
+}
+# fit a given formula: mixed model if it has random effects, ordinary logistic regression if not
+fit_given <- function(f, data) {
+  if (length(lme4::findbars(f)) == 0) glm(f, data = data, family = binomial) else glmer(f, data = data, family = binomial)
+}
+fit_first_ok <- function(formulas, data) {
+  ok <- vapply(formulas, grouping_ok, logical(1), data = data)
+  usable <- formulas[ok]
+  for (f in formulas[!ok]) cat("  skipped (a grouping factor has only one level, e.g. one participant):", deparse1(f), "\n")
+  for (f in usable) {
+    fit <- tryCatch(glmer(f, data = data, family = binomial), error = function(e) NULL, warning = function(w) NULL)
+    if (!is.null(fit) && !isSingular(fit)) { cat("  random-effects structure kept:", deparse1(f), "\n"); return(list(fit = fit, formula = f)) }
+    cat("  not usable (error / failed to converge / singular):", deparse1(f), "\n")
+  }
+  for (f in usable) {                          # nothing fitted cleanly: use the first structure that runs at all
+    fit <- tryCatch(suppressWarnings(glmer(f, data = data, family = binomial)), error = function(e) NULL)
+    if (!is.null(fit)) {
+      warning("No structure fitted cleanly; using ", deparse1(f), ". Interpret with caution.")
+      return(list(fit = fit, formula = f))
+    }
+  }
+  f0 <- lme4::nobars(formulas[[1]])            # last resort: no random effects possible with these data
+  warning("Too few participants/items for any random effect; using an ordinary logistic regression (", deparse1(f0), "). Do not interpret.")
+  list(fit = glm(f0, data = data, family = binomial), formula = f0)
+}
+
+if (n_groups == 2) {
+  # logistic regression models
+  cat("\n##### MAIN MODEL: aud_corr ~ group*aud_diff #####\n")
+  main <- fit_first_ok(list(
+    aud_corr ~ group*aud_diff + (1+aud_diff|subject),
+    aud_corr ~ group*aud_diff + (1+aud_diff||subject),
+    aud_corr ~ group*aud_diff + (1|subject),
+    aud_corr ~ group*aud_diff + (1|audiostimulus)), LING_foranalysis)
+  aud_glm1 <- main$fit
+  print(summary(aud_glm1))
+ 
+  # relevel to check effect of L2 (same random-effects structure as the main model)
+  cat("\n##### RELEVELED (group_relevel: contrast1 = L2) #####\n")
+  relevel_formula <- as.formula(gsub("\\bgroup\\b", "group_relevel", deparse1(main$formula)))
+  aud_glm1_relevel <- fit_given(relevel_formula, LING_foranalysis)
+  print(summary(aud_glm1_relevel))
+ 
+  # the original found an interaction between group and RC type (aud_diff), so it unpacked each group:
+  sub_formulas <- list(aud_corr ~ aud_diff + (1|audiostimulus),
+                       aud_corr ~ aud_diff + (1|subject),
+                       aud_corr ~ aud_diff + (1|audiostimulus) + (1|subject))
+  # HSs
+  cat("\n##### HSs #####\n")
+  aud_glm1_HS <- fit_first_ok(sub_formulas, LING_foranalysis[LING_foranalysis$group=="HS",])$fit
+  print(summary(aud_glm1_HS))   # contrasts: RR vs SR, SR vs OR
+ 
+  # L2s (= ERBs)
+  cat("\n##### L2s (ERBs) #####\n")
+  aud_glm1_L2 <- fit_first_ok(sub_formulas, LING_foranalysis[LING_foranalysis$group=="L2",])$fit
+  print(summary(aud_glm1_L2))
+ 
+  # save the four summaries to a text file (capture.output is safe inside knitr/Quarto, unlike sink())
+  capture.output(print(summary(aud_glm1)), print(summary(aud_glm1_relevel)), print(summary(aud_glm1_HS)), print(summary(aud_glm1_L2)),
+                 file = file.path(out_dir, "model_summaries.txt"))
+} else {
+  cat("\nOnly", n_groups, "group found in the data. The group-by-RC-type models need both HS and L2 participants,",
+      "so the models are skipped; the plot below still works.\n")
+}
+```
+
+```{r}
+## ===================================
+## PICTURE-MATCHING ACCURACY PLOT
+## ===================================
+
+# create new table with accuracies per participant per condition
+audio_accuracy <- single_audio_clean %>%
+  group_by(group, subject, aud_diff) %>%
+  summarise(accuracy=mean(aud_corr))
+
+# Get an overall barplot from this
+aud_sum <- audio_accuracy %>% group_by(group, aud_diff) %>% 
+  summarize(mean_acc=mean(accuracy),
+            se=sqrt(mean(accuracy)*(1-mean(accuracy))/length(accuracy)))
+print(aud_sum)
+
+dualFig3 <- aud_sum %>% filter(group!= "Gen1.5") %>% ggplot(aes(x=group,y=mean_acc,fill=aud_diff)) + 
+  geom_bar(stat="identity", color="white",position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean_acc-se, ymax=mean_acc+se),width=0.2,position=position_dodge(0.9))+
+  ylim(c(0,1)) +
+  ylab("Proportion of correct responses to audio trials") + xlab("Group") + 
+  scale_fill_grey() + labs(fill="RC type") + 
+  scale_x_discrete(labels = c("HS" = "HS",
+                              "L2" = "ERB"))     # CHANGED: no SRB group in your data
+
+ggsave(
+  filename = file.path(out_dir, "Replication-Fig3.png"),
+  plot = dualFig3,
+  width = 6,         # width in inches
+  height = 4,        # height in inches
+  dpi = 600          # resolution
+)
+print(dualFig3)    # shows the plot
+
+```
 
 *Side-by-side graph with original graph is ideal here*
 
