@@ -453,9 +453,10 @@ singletaskraw <- raw %>%
 single_audio <- singletaskraw %>% filter(condition=="audio only")
 print(dim(single_audio))
 single_audio_clean <- single_audio %>% 
-  filter(reaction_time > 150) %>%
-  group_by(subject, aud_diff) %>% 
-  filter(abs(reaction_time - mean(reaction_time)) < (sd(reaction_time) * 2.5))
+  filter(reaction_time > 150) %>%    #filter(reaction_time > 150): removes any trial answered in 150 ms or less, which would be an accidental key press.
+  group_by(subject, aud_diff) %>%  #group_by(subject, aud_diff): tells R to do the next step separately for each participant and each RC type (RR, SR, OR). Each participant gets three small groups of about 40 trials.
+  filter(abs(reaction_time - mean(reaction_time)) < (sd(reaction_time) * 2.5)) #filter(abs(reaction_time - mean(reaction_time)) < sd(reaction_time) * 2.5): inside each group, R works out that participant’s average RT and standard deviation for that structure. It keeps a trial only if its RT is within 2.5 standard deviations of the average, in either direction. Trials outside that band are dropped. if one participant’s OR trials average 3.5 s with a standard deviation of 1.2 s, trials between 0.5 s and 6.5 s are kept. A trial where they got distracted and took 12 s is removed.
+
 print(dim(single_audio_clean))
 print((nrow(single_audio) - nrow(single_audio_clean)) / nrow(single_audio))   # share of data removed (original: 2.8%)
 
