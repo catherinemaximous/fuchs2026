@@ -34,7 +34,7 @@
 const BLOCK_SIZE = 30;                          // optional break after every 30 trials
 const TRIALS_PER_STRUCTURE = 40;                // 40 RR + 40 SR + 40 OR = 120 trials
 const MAX_SIDE_RUN = 2;                         // correct answer never on the same side more than 2 trials in a row
-const RESPONSE_ALLOWED_WHILE_PLAYING = false;   // paper does not say; decide and report
+const RESPONSE_ALLOWED_WHILE_PLAYING = true;   // paper does not say; decide and report
 const IMG_WIDTH = 380;
 const LIST_SEED = 1;                            // each participant's list is drawn from LIST_SEED + their random ID
 const DATAPIPE_ID = '7rt3xgiIaLP4';             // your DataPipe experiment ID
@@ -44,9 +44,11 @@ const IMAGE_FOLDER = 'stimuli/Images/';
 const QUESTIONNAIRES_FIRST = true;              // true = questionnaires BEFORE the picture-matching task; false = after it (as in the paper)
 const AUDIO_CHECK_MAX_TRIES = 3;                // sound check: each of the 3 checks gets this many attempts (a new phrase each time); then the study ends with a message
 const SOUND_CHECK_MIN_PLAYS = 1;                // how many times a phrase must be played before the question appears (they can always replay it more often)
-// SONA credit link: copy the "completion URL" from your study's page in SONA and paste it here. Keep %SURVEY_CODE% in it, e.g.
-// 'https://YOURSCHOOL.sona-systems.com/webstudy_credit.aspx?experiment_id=123&credit_token=abc123def456&survey_code=%SURVEY_CODE%'
-const SONA_COMPLETION_URL = '';
+// SONA credit link. The participant's SONA code (from ?id=%SURVEY_CODE% in the study URL) is added to the end of this address.
+// (If the address contains %SURVEY_CODE% the code is put there instead.)
+const SONA_COMPLETION_URL = 'https://ucsd.sona-systems.com/services/SonaAPI.svc/WebstudyCredit?experiment_id=3165&credit_token=0c83ff3fe10243d7af75630d329fa1d4&survey_code=';
+const SONA_REDIRECT_DELAY_MS = 2000;            // after the data are saved, wait this long on the thank-you screen, then go to SONA (0 = at once)
+const ATTENTION_CHECKS = true;                  // a short audio attention check (same format as the sound check, one attempt) at the end of every block
 /* ===================================================== */
 
 /* BEGIN LOGIC */
@@ -444,9 +446,10 @@ function makeSoundCheckItem(kind, file, sample, shuffle) {
 }
 
 // The sound-check page: a Play button (as many plays as they like), then "I'm ready to answer" reveals the question.
-const soundCheckHtml = (item, n, total) => `<div class="instr">
-  <h3>Sound check (${n} of ${total})</h3>
-  <p>Click the button to hear a short phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer”.</p>
+const soundCheckHtml = (item, n, total, title = `Sound check (${n} of ${total})`,
+  intro = 'Click the button to hear a short phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer”.') => `<div class="instr">
+  <h3>${title}</h3>
+  <p>${intro}</p>
   <p><button type="button" id="sc_play" class="jspsych-btn">▶ Play</button> &nbsp; <span id="sc_status" class="hint">Not played yet</span></p>
   <p><button type="button" id="sc_ready" class="jspsych-btn" disabled>I’m ready to answer</button></p>
   <div id="sc_q" style="display:none"><p><b>${item.question}</b></p>${radioList('heard', item.options)}</div>
@@ -523,13 +526,20 @@ function attachSoundCheck(item, st, minPlays) {
       const csv = jsPsych.data.get().csv();
       const saved = await saveData(csv);
       if (endedEarly) return;
-      const sonaUrl = SONA_COMPLETION_URL.replace('%SURVEY_CODE%', encodeURIComponent(sonaCode));
-      const creditHtml = SONA_COMPLETION_URL
-        ? `<p><a href="${sonaUrl}"><b>Click here to return to SONA and receive your credit.</b></a></p>` : '';
+      // SONA credit address: code added at the end (or put in place of %SURVEY_CODE%)
+      const sonaUrl = SONA_COMPLETION_URL.includes('%SURVEY_CODE%')
+        ? SONA_COMPLETION_URL.replace('%SURVEY_CODE%', encodeURIComponent(sonaCode))
+        : SONA_COMPLETION_URL + encodeURIComponent(sonaCode);
+      const hasSona = !!SONA_COMPLETION_URL && !!sonaCode;     // only people who came through SONA (?id=...) are sent back
       document.body.innerHTML = saved
-        ? `<div class="instr" style="margin-top:80px;text-align:center"><h3>Thank you! You have completed the study.</h3>${creditHtml}<p>You may now close this window.</p></div>`
+        ? `<div class="instr" style="margin-top:80px;text-align:center"><h3>Thank you! You have completed the study.</h3>` +
+          (hasSona ? `<p>Your data have been saved. You will now be redirected to SONA to receive your credit.</p>` +
+                     `<p><a href="${sonaUrl}"><b>Click here if you are not redirected automatically.</b></a></p>`
+                   : `<p>You may now close this window.</p>`) + `</div>`
         : `<div class="instr" style="margin-top:80px;text-align:center"><h3>We could not save your data automatically.</h3>` +
-          `<p>Please <a href="${URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))}" download="${participantId || 'NOID'}.csv">download your data file</a> and email it to brlong@ucsd.edu.</p></div>`;
+          `<p>Please <a href="${URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))}" download="${participantId || 'NOID'}.csv">download your data file</a> and email it to brlong@ucsd.edu.</p>` +
+          (hasSona ? `<p>After that, <a href="${sonaUrl}"><b>click here to receive your SONA credit</b></a>.</p>` : '') + `</div>`;
+      if (saved && hasSona) setTimeout(() => { window.location = sonaUrl; }, SONA_REDIRECT_DELAY_MS);   // redirect only after the data are saved
     }
   };
   // saves one CSV per participant to DataPipe (named with the participant ID entered during the study)
@@ -711,6 +721,28 @@ function attachSoundCheck(item, st, minPlays) {
       <p>Press the space bar to begin.</p></div>`
   });
 
+  // ---- attention checks: one at the end of every block (same format as the sound check, ONE attempt each, never ends the study) ----
+  // The phrases are stimulus files this participant does not hear in the task or in the sound check. Results are saved in the data
+  // (task = "attention_check", attention_check_passed = 1/0) and summarised in every row (attention_checks_passed / attention_checks_total).
+  const nBlocks = Math.ceil(LIST.length / BLOCK_SIZE);
+  const ATTN_KINDS = ['first', 'last', 'both'];
+  let attnPassed = 0;
+  const attnItems = Array.from({ length: nBlocks }, (_, b) =>
+    makeSoundCheckItem(ATTN_KINDS[b % ATTN_KINDS.length], scPool[(SC_KINDS.length * AUDIO_CHECK_MAX_TRIES + b) % scPool.length], scSample, scShuffle));
+  const attentionCheck = b => ({
+    type: jsPsychSurveyHtmlForm, button_label: 'Submit answer', data: { task: 'attention_check', block: b + 1 },
+    html: () => soundCheckHtml(attnItems[b], b + 1, nBlocks, `Attention check (${b + 1} of ${nBlocks})`,
+      'This is a short attention check. Click the button to hear a phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer” and answer the question.'),
+    on_load: () => attachSoundCheck(attnItems[b], scState, SOUND_CHECK_MIN_PLAYS),
+    on_finish: d => {
+      if (scState.audio) scState.audio.pause();
+      const ok = (d.response || {}).heard === attnItems[b].answer;
+      if (ok) attnPassed++;
+      d.attention_check_passed = ok ? 1 : 0; d.attention_check_block = b + 1; d.attention_clip = attnItems[b].file;
+      d.attention_plays = scState.completed; d.attention_load_errors = scState.errors;
+    }
+  });
+
   LIST.forEach((t, i) => {
     timeline.push({
       type: jsPsychHtmlKeyboardResponse, choices: [' '],
@@ -731,6 +763,7 @@ function attachSoundCheck(item, st, minPlays) {
         d.correct = (d.response !== null && d.response.toLowerCase() === d.correct_response.toLowerCase()) ? 1 : 0;
       }
     });
+    if (ATTENTION_CHECKS && ((i + 1) % BLOCK_SIZE === 0 || i + 1 === LIST.length)) timeline.push(attentionCheck(Math.floor(i / BLOCK_SIZE)));
     if ((i + 1) % BLOCK_SIZE === 0 && i + 1 < LIST.length) {
       timeline.push({
         type: jsPsychHtmlKeyboardResponse, choices: [' '], data: { task: 'break' },
@@ -754,7 +787,7 @@ function attachSoundCheck(item, st, minPlays) {
       '<p>This study examined how people understand Spanish: the picture-matching task you completed is adapted from Fuchs, Muegge, and Shea (2026), “Do heritage speakers work harder in their heritage language? A dual task study of cognitive effort in bilingual language processing,” <i>Bilingualism: Language and Cognition</i>, which compares Spanish comprehension across speakers with different language backgrounds. ' +
       'Thank you very much for your participation! Please do not share any information about this study with other potential participants.</p>' +
       '<p>Press the space bar to submit your data. Please wait until the final thank-you screen appears before closing this window.</p></div>',
-    on_finish: () => jsPsych.data.addProperties({ completion_status: 'complete' })
+    on_finish: () => jsPsych.data.addProperties({ completion_status: 'complete', attention_checks_passed: attnPassed, attention_checks_total: ATTENTION_CHECKS ? nBlocks : 0 })
   });
 
   jsPsych.run(timeline);
