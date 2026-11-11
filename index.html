@@ -382,8 +382,11 @@ function buildQuestionnaire(onAnswers) {
 
   // ---- Additional questions: siblings ----
   add('aq_siblings', 'Siblings',
-    question('Do you have siblings?', radioList('sib_has', [['yes', 'Yes'], ['no', 'No']], true), 'If no, you can skip the remaining sibling questions.') +
-    `<div id="sib_block" style="display:none">` +
+    question(
+  'Do you have siblings?',
+  radioList('sib_has', [['yes', 'Yes'], ['no', 'No']], true)
+) +
+`<div id="sib_block" style="display:none">` +
     question('If yes, which of the following applies to you:', radioList('sib_position', [['oldest', 'I am the oldest'], ['middle', 'I am in the middle'], ['youngest', 'I am the youngest']])) +
     question('How many siblings do you have?', '<input type="number" name="sib_number" min="1" max="30" required style="width:80px">') +
     question('My siblings and I…', checkList('sib_c', ['All speak Spanish', 'All understand Spanish', 'None of us speak Spanish', 'None of us understand Spanish', 'Some siblings speak Spanish, others do not', 'Some siblings understand Spanish, others do not']), 'Select all that apply.') +
