@@ -731,8 +731,13 @@ function attachSoundCheck(item, st, minPlays) {
     makeSoundCheckItem(ATTN_KINDS[b % ATTN_KINDS.length], scPool[(SC_KINDS.length * AUDIO_CHECK_MAX_TRIES + b) % scPool.length], scSample, scShuffle));
   const attentionCheck = b => ({
     type: jsPsychSurveyHtmlForm, button_label: 'Submit answer', data: { task: 'attention_check', block: b + 1 },
-    html: () => soundCheckHtml(attnItems[b], b + 1, nBlocks, `Attention check (${b + 1} of ${nBlocks})`,
-      'Click the button to hear a phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer” and answer the question.'),
+    html: () => soundCheckHtml(
+  attnItems[b],
+  b + 1,
+  nBlocks,
+  `Audio task (${b + 1} of ${nBlocks})`,
+  'Click the button to hear a phrase in Spanish. You can play it as many times as you like. When you are ready, click “I’m ready to answer” and answer the question.'
+),
     on_load: () => attachSoundCheck(attnItems[b], scState, SOUND_CHECK_MIN_PLAYS),
     on_finish: d => {
       if (scState.audio) scState.audio.pause();
