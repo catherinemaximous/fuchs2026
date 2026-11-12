@@ -5,39 +5,39 @@ Formula: aud_corr ~ group * aud_diff + (1 + aud_diff | subject)
    Data: data
 
       AIC       BIC    logLik -2*log(L)  df.resid 
-    486.0     540.6    -231.0     462.0       687 
+    339.0     391.4    -157.5     315.0       571 
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--6.3072 -0.1869  0.1245  0.3705  5.3506 
+-6.3152 -0.1775  0.1458  0.2557  5.6327 
 
 Random effects:
  Groups  Name        Variance Std.Dev. Corr        
- subject (Intercept)  0.2563  0.5062               
-         aud_diff1    3.5399  1.8815   -0.94       
-         aud_diff2   17.8944  4.2302    0.99 -0.97 
-Number of obs: 699, groups:  subject, 6
+ subject (Intercept)  0.3013  0.5489               
+         aud_diff1    5.7069  2.3889   -1.00       
+         aud_diff2   23.7178  4.8701    1.00 -1.00 
+Number of obs: 583, groups:  subject, 5
 
 Fixed effects:
                  Estimate Std. Error z value Pr(>|z|)    
-(Intercept)        1.5598     0.4161   3.748 0.000178 ***
-group1             0.4402     0.3355   1.312 0.189563    
-aud_diff1         -1.8740     1.3846  -1.353 0.175901    
-aud_diff2          7.0837     2.3140   3.061 0.002204 ** 
-group1:aud_diff1  -0.8375     1.1640  -0.720 0.471821    
-group1:aud_diff2   2.9251     2.1697   1.348 0.177599    
+(Intercept)        1.6627     0.4773   3.483 0.000495 ***
+group1             0.3950     0.3669   1.077 0.281592    
+aud_diff1         -2.2250     1.7043  -1.306 0.191718    
+aud_diff2          7.8390     2.8099   2.790 0.005275 ** 
+group1:aud_diff1  -1.1004     1.4464  -0.761 0.446762    
+group1:aud_diff2   2.8074     2.6266   1.069 0.285131    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Correlation of Fixed Effects:
             (Intr) group1 ad_df1 ad_df2 gr1:_1
-group1       0.579                            
-aud_diff1   -0.779 -0.419                     
-aud_diff2    0.769  0.428 -0.883              
-grp1:d_dff1 -0.406 -0.742  0.577 -0.496       
-grp1:d_dff2  0.367  0.803 -0.441  0.495 -0.897
+group1       0.437                            
+aud_diff1   -0.835 -0.350                     
+aud_diff2    0.782  0.342 -0.931              
+grp1:d_dff1 -0.323 -0.810  0.435 -0.401       
+grp1:d_dff2  0.288  0.830 -0.365  0.389 -0.949
 optimizer (Nelder_Mead) convergence code: 0 (OK)
-Model failed to converge with max|grad| = 0.0344117 (tol = 0.002, component 1)
+Model failed to converge with max|grad| = 0.0173381 (tol = 0.002, component 1)
   See ?lme4::convergence and ?lme4::troubleshooting.
 
 Generalized linear mixed model fit by maximum likelihood (Laplace
@@ -47,39 +47,39 @@ Formula: aud_corr ~ group_relevel * aud_diff + (1 + aud_diff | subject)
    Data: data
 
       AIC       BIC    logLik -2*log(L)  df.resid 
-    486.0     540.6    -231.0     462.0       687 
+    339.0     391.4    -157.5     315.0       571 
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--6.3317 -0.1867  0.1239  0.3708  5.3571 
+-6.3114 -0.1777  0.1461  0.2561  5.6289 
 
 Random effects:
  Groups  Name        Variance Std.Dev. Corr        
- subject (Intercept)  0.2637  0.5135               
-         aud_diff1    3.6446  1.9091   -0.94       
-         aud_diff2   18.2678  4.2741    0.99 -0.97 
-Number of obs: 699, groups:  subject, 6
+ subject (Intercept)  0.2966  0.5446               
+         aud_diff1    5.6427  2.3754   -1.00       
+         aud_diff2   23.4693  4.8445    1.00 -1.00 
+Number of obs: 583, groups:  subject, 5
 
 Fixed effects:
                          Estimate Std. Error z value Pr(>|z|)    
-(Intercept)                1.5668     0.4210   3.722 0.000198 ***
-group_relevel1            -0.4484     0.3401  -1.318 0.187393    
-aud_diff1                 -1.8903     1.4026  -1.348 0.177766    
-aud_diff2                  7.1052     2.3416   3.034 0.002410 ** 
-group_relevel1:aud_diff1   0.8586     1.1823   0.726 0.467730    
-group_relevel1:aud_diff2  -2.9673     2.2006  -1.348 0.177517    
+(Intercept)                1.6596     0.4744   3.499 0.000468 ***
+group_relevel1            -0.3947     0.3650  -1.081 0.279523    
+aud_diff1                 -2.2158     1.6938  -1.308 0.190817    
+aud_diff2                  7.8250     2.7923   2.802 0.005074 ** 
+group_relevel1:aud_diff1   1.0980     1.4394   0.763 0.445586    
+group_relevel1:aud_diff2  -2.8055     2.6130  -1.074 0.282974    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Correlation of Fixed Effects:
             (Intr) grp_r1 ad_df1 ad_df2 g_1:_1
-group_rlvl1 -0.586                            
-aud_diff1   -0.783  0.428                     
-aud_diff2    0.773 -0.434 -0.885              
-grp_rlv1:_1  0.415 -0.747 -0.583  0.502       
-grp_rlv1:_2 -0.377  0.807  0.449 -0.500 -0.900
+group_rlvl1 -0.438                            
+aud_diff1   -0.834  0.349                     
+aud_diff2    0.780 -0.342 -0.930              
+grp_rlv1:_1  0.322 -0.808 -0.436  0.401       
+grp_rlv1:_2 -0.287  0.828  0.364 -0.389 -0.949
 optimizer (Nelder_Mead) convergence code: 0 (OK)
-Model failed to converge with max|grad| = 0.0443163 (tol = 0.002, component 1)
+Model failed to converge with max|grad| = 0.0116016 (tol = 0.002, component 1)
   See ?lme4::convergence and ?lme4::troubleshooting.
 
 Generalized linear mixed model fit by maximum likelihood (Laplace
@@ -122,29 +122,29 @@ Formula: aud_corr ~ aud_diff + (1 | audiostimulus)
    Data: data
 
       AIC       BIC    logLik -2*log(L)  df.resid 
-    484.0     500.6    -238.0     476.0       462 
+    332.6     348.0    -162.3     324.6       346 
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--2.2803 -0.6667  0.4385  0.4695  1.5000 
+-2.8284 -0.5872  0.3535  0.4702  1.7029 
 
 Random effects:
  Groups        Name        Variance Std.Dev.
  audiostimulus (Intercept) 0        0       
-Number of obs: 466, groups:  audiostimulus, 220
+Number of obs: 350, groups:  audiostimulus, 203
 
 Fixed effects:
             Estimate Std. Error z value Pr(>|z|)    
-(Intercept)   0.7832     0.1161   6.745 1.54e-11 ***
-aud_diff1     0.1367     0.3021   0.452    0.651    
-aud_diff2     2.3229     0.2714   8.558  < 2e-16 ***
+(Intercept)   0.8414     0.1451   5.798 6.71e-09 ***
+aud_diff1     0.5701     0.3804   1.499    0.134    
+aud_diff2     2.5741     0.3209   8.022 1.04e-15 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Correlation of Fixed Effects:
           (Intr) ad_df1
-aud_diff1  0.039       
-aud_diff2  0.143 -0.531
+aud_diff1  0.171       
+aud_diff2  0.095 -0.476
 optimizer (Nelder_Mead) convergence code: 0 (OK)
 boundary (singular) fit: see help('isSingular')
 

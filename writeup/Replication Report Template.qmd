@@ -337,12 +337,14 @@ Additionally the picture-matching task "were blocked into sections of 30 trials,
 
 The study does not mention how many sentence structures are shown per trial but since the materials include 40 RR, 40 SR, and 40 OR audio files, it will be split across 4 sections of 30 trials and no audio will be repeated. This ensures that all participants have been exposed to the same conditions however order of trials will be randomized across each participant. 
 
-120 items are pulled at random from the 240 audio stimuli with a balance of 40 RR, 40 SR, and 40 OR. 
+120 items are pulled at random from the 240 audio stimuli with a balance of 40 RR, 40 SR, and 40 OR. Because the 120 trials come from only 80 picture pairs, 40 of the 80 picture pairs appear twice for every participant however each time with a different RC type, and the other 40 appear once. No pair appears twice within the same RC type therefore the audio will not be heard more than once.
 
 Language-history questionnaire:
 
 To characterize the population, prior to the task, participants will receive a language background questionnaire. The paper states that they used a "a pen-and-paper version ofthe Bilingual Language Profile (BLP) (Birdsong et al., 2012) and an additional brief questionnaire consisting of selected questions from the Language Experience and Proficiency Questionnaire(LEAP-Q)(Kaushanskaya
-et al., 2020; Marian et al., 2007)." However, due to this experiment using JsPysch, the questionnaire will be administered online. The important questions to assess heritage speakers of Spanish in this study is including questions regarding age of language acquisition for Spanish and English and place of birth/time of immigration. Heritage speakers are characterized as have acquired the heritage language at birth and English later (first year of schooling) and were born and raised in the US or immigrated to the US prior to or at the age of 6. Second language learners of Spanish are those who have enrolled in Spanish courses in high school or University. 
+et al., 2020; Marian et al., 2007)." However, due to this experiment using JsPysch, the questionnaire will be administered online. The important questions to assess heritage speakers of Spanish in this study who list their English first as their dominant language and who did not grew up in a Spanish-dominant environment past childhood. They should also have acquired Spanish at or before the age of 6. Participants who report learning the language after 6 years old will be considered second-language learner (ERBs). Participants who grew up in a Spanish-dominant environment past childhood and list Spanish first as their dominant language are excluded as they are considered part of the Spanish-raised bilinguals (SRBs) group. ERBs should also report taking at least more than one year of Spanish coursework. 
+
+is including questions regarding age of language acquisition for Spanish and English and place of birth/time of immigration. Heritage speakers are characterized as have acquired the heritage language at birth and English later (first year of schooling) and were born and raised in the US or immigrated to the US prior to or at the age of 6. Second language learners of Spanish are those who have enrolled in Spanish courses in high school or University. 
 
 ### Procedure	
 Can quote directly from original article - just put the text in quotations and note that this was followed precisely.  Or, quote directly and just point out exceptions to what was described in the original article.
@@ -360,7 +362,7 @@ Can also quote directly, though it is less often spelled out effectively for an 
 
 In this study, the authors "took a general mixed effects modeling approach for analysis. All data were processed and analyzed in R Version 4.2.1(R CoreTeam, 2021) using the lme4 package (Bates et al., 2015). For each analysis,the maximal random effect structure supported by the data was included; if a model including random slopes and intercepts did not converge, the random effects structure was reduced until convergence was reached. Random intercepts grouped by participant were prioritized over random intercepts grouped by item when a model with both of these did not converge, to account for typically larger by-participant than by-item variation (Sonderegger, 2023)." This is to check if the difficulty manipulation worked and that performance on OR will show less accurate responses compared to the other two sentence structures. 
 
-For the picture-matching task, "responses faster than 150 ms and outside of 2.5 standard deviations of the mean (grouped by participant and by relative clause type) were excluded from analysis, removing 2.8% of the data, at approximately equal rates across the three groups and across conditions within each group." Participants who report Spanish as their dominant language AND their first acquired language will be excluded as they do not fit the heritage speaker or L2 profile.
+For the picture-matching task, "responses faster than 150 ms and outside of 2.5 standard deviations of the mean (grouped by participant and by relative clause type) were excluded from analysis, removing 2.8% of the data, at approximately equal rates across the three groups and across conditions within each group." Participants who report Spanish as their dominant language AND their first acquired language will be excluded as they do not fit the heritage speaker or L2 profile. L2 speakers who report never taking a Spanish course will be excluded as they may not be second-language learners. This will help assess the level of knowledge of these second-language learners as well. 
 
 The planned confirmatory test for this will be the SR-versus-OR contrast in picture-matching accuracy. Logistic mixed-effects models will be fit to trial-level accuracy data, and follow-up models within HSs and ERBs will evaluate whether Subject Relatives are identified more accurately than Object Relatives.
 
@@ -382,15 +384,18 @@ The known differences from the original study is first the procedure. In the ori
 
 The entire study will also be administered online through SONA and using JsPsych and hosted on GitHub Pages. This is different as the original study was conducted in the lab. To control for any environmental noise, audio checks and attention checks will be added.
 
-The heritage Spanish-English population should be a similar sample to the one in the original study however recruiting second-language Spanish learners will be more broad and not from students who are currently enrolled in university-level courses in Spanish. 
+The heritage Spanish-English population should be a similar sample to the one in the original study however recruiting second-language Spanish learners will be more broad and not from students who are currently enrolled in university-level courses in Spanish.Instead these will be participants who report taking at least one year of Spanish class so they should answer (1+) on "How many years of classes (grammar, history, math, etc.) have you had in the following languages (primary school through university)? [Spanish]."
+
 
 Additionally, participants will not be given the flanker task prior to the picture-matching task and instead of completing the questionnaire at the end of the experiment, they will be completing it in the beginning prior to the task. This is to ensure that participants' answers on the proficiency questions are not influenced by their performance on the task. 
 
-The analysis plan and exclusion criteria will look different since I do not have three different types of group and will look at the RC-type group instead. Additionally, on JsPsych reaction time will start from the onset of the audio to the response therefore my exclusion for reaction time should be different. Reaction time will be measured by the onset to the end of the audio. Any participants that score low on the RR condition will also be excluded as it is considered the baseline and means that participant did not understand the task or is not paying attention. 
+The analysis plan and exclusion criteria will look different since I do not have three different types of group and will look at the RC-type group instead. Additionally, on JsPsych reaction time will start from the onset of the audio to the response therefore my exclusion for reaction time should be different. Reaction time will be measured by the onset to the end of the audio. Any participants that score low (<.50) on the RR condition will also be excluded as it is considered the baseline and means that participant did not understand the task or is not paying attention. 
 
 The study's main research question was to test whether heritage speakers' of Spanish are engaging in more cognitive effort when they are required to process language in Spanish. They tested this by comparing them to two other groups and in a dual-task that includes both a linguisitc and non-linguistic task. However, the purpose of this replication is to test the claim of relative-clause processing and comprehension in heritage speakers and how there is an asymmetry between SRs and ORs due to what has been identified in the literature as a hierarchy of processing difficulty. If processing cost is greater for object-extracted relative clauses for the heritage speakers of this sample, I should be able to replicate the findings of the original study. 
 
-I do not believe there are any major differences between my replication and the original paper as I am using the same type of stimuli all provided by the authors of the original paper. However, since I do not have the same group of participants, comparisons across groups will not look the same and my analysis will rely more on the accuracy across the RC-type condition. This is still an important test because the main claim of the paper is with increase syntactic complexity, the more cognitive resources that will be employed leading to a lower performance on the dual-task conducted later in the paper.
+Some of the other major differences between my replication and the original paper, is that I am not distributing the 120 conditions in the same way. The original paper only reports that the sentences in its dual task were not reused from the single taks, so their 240 recordings in their repository were shared between the two parts. However, since I use only the single picture-matching task with all 240 recording, each picture pair consists of two drawings showing the same action with the agent and patient swapped. Because the 120 trials come from only 80 picture pairs, 40 of the 80 picture pairs appear twice for every participant, each time with a different RC type and the other 40 appear only once. No pair appears twice within the same RC type, and no recording is heard more than once. The original study did not control for the repetition of picture pairs or had a balanced item sampling. To ensure I have enough trials for each RC-type since I am only use the single-picture matching task and not the dual-task, I made sure that participants have have 40 of each RC-type.  
+
+Additionally I do not have the same group of participants, comparisons across groups will not look the same and my analysis will rely more on the accuracy across the RC-type condition. This is still an important test because the main claim of the paper is with increase syntactic complexity, the more cognitive resources that will be employed leading to a lower performance on the dual-task conducted later in the paper.
 
 
 ### Methods Addendum (Post Data Collection)
@@ -476,7 +481,7 @@ if (nrow(dup_ids) > 0) {
 
 cat("\nGroup assignment (from age of starting Spanish):\n")
 print(participants %>% count(group, spanish_start_num), n = Inf)
-cat("Not classified (exactly 7 years or missing), left out:", sum(is.na(participants$group)), "\n")
+cat("classified (exactly 7 years ), none left out:", sum(is.na(participants$group)), "\n")
 
 ## ===================================
 ## PARTICIPANT EXCLUSIONS
@@ -484,12 +489,15 @@ cat("Not classified (exactly 7 years or missing), left out:", sum(is.na(particip
 # 1. Spanish listed as the native language (first in order of acquisition) AND listed first in language dominance
 #    (i.e. grew up in a Spanish-dominant environment past childhood)  -> excluded
 # 2. Accuracy on RR trials below chance (< 50%): not understanding the task / not paying attention -> excluded
+# 3. L2 (ERB) group only: never took a Spanish class (0 years of Spanish coursework) -> excluded   # NEW
 
-dom_col <- "(1) Please list all the languages you know in order of dominance: [#1]"
-acq_col <- "(2) Please list all the languages you know in order of acquisition (your native language first): [#1]"
-stopifnot("Dominance / acquisition columns not found" = all(c(dom_col, acq_col) %in% names(raw)))
+dom_col   <- "(1) Please list all the languages you know in order of dominance: [#1]"
+acq_col   <- "(2) Please list all the languages you know in order of acquisition (your native language first): [#1]"
+class_col <- "3. How many years of classes (grammar, history, math, etc.) have you had in the following languages (primary school through university)? [Spanish]"   # NEW
+stopifnot("Dominance / acquisition / coursework columns not found" = all(c(dom_col, acq_col, class_col) %in% names(raw)))
 
 REQUIRE_NATIVE_SPANISH <- TRUE   # TRUE: exclude only if Spanish is BOTH native and #1 in dominance; FALSE: Spanish #1 in dominance is enough
+L2_MIN_CLASS_YEARS     <- 1      # NEW: L2 participants need MORE than this many years of Spanish classes (1 = at least one year of some coursework)
 
 # free-text answers: tolerant match (Spanish, spanish, Espanol, Castellano, small typos)
 is_spanish <- function(x) str_detect(stringi::stri_trans_general(str_to_lower(str_trim(x)), "Latin-ASCII"), "span|espan|castell")
@@ -497,10 +505,14 @@ is_spanish <- function(x) str_detect(stringi::stri_trans_general(str_to_lower(st
 lang_info <- raw %>%
   group_by(source_file, participant_id) %>%
   summarise(native_1    = first_nonempty(.data[[acq_col]]),
-            dominance_1 = first_nonempty(.data[[dom_col]]), .groups = "drop") %>%
+            dominance_1 = first_nonempty(.data[[dom_col]]),
+            spanish_class_years_raw = first_nonempty(.data[[class_col]]),             # NEW
+            .groups = "drop") %>%
   mutate(native_spanish    = is_spanish(native_1),
          spanish_dominant  = is_spanish(dominance_1),
-         excl_language     = if (REQUIRE_NATIVE_SPANISH) native_spanish & spanish_dominant else spanish_dominant)
+         excl_language     = if (REQUIRE_NATIVE_SPANISH) native_spanish & spanish_dominant else spanish_dominant,
+         spanish_class_years = case_when(spanish_class_years_raw == "20+" ~ 20,       # NEW: "20+" counts as 20
+                                         TRUE ~ suppressWarnings(as.numeric(spanish_class_years_raw))))
 
 # the raw-data table the original code starts from
 singletaskraw <- raw %>%
@@ -517,23 +529,23 @@ singletaskraw <- raw %>%
 rr_acc <- singletaskraw %>%
   filter(aud_diff == "RR") %>%
   group_by(subject) %>%
-  summarise(
-    n_RR = n(),
-    acc_RR = mean(aud_corr),
-    .groups = "drop"
-  ) %>%
+  summarise(n_RR = n(), acc_RR = mean(aud_corr), .groups = "drop") %>%
   mutate(excl_rr_below_chance = acc_RR < 0.5)
 
 exclusions <- participants %>%
   select(source_file, participant_id, group) %>%
   left_join(lang_info, by = c("source_file", "participant_id")) %>%
   left_join(rr_acc, by = c("participant_id" = "subject")) %>%
-  mutate(across(c(excl_language, excl_rr_below_chance), ~ coalesce(.x, FALSE)),   # missing answers = not excluded
-         excluded = excl_language | excl_rr_below_chance)
+  mutate(excl_no_coursework = group == "L2" & spanish_class_years <= L2_MIN_CLASS_YEARS,   # applies to the L2 group only
+         across(c(excl_language, excl_rr_below_chance, excl_no_coursework), ~ coalesce(.x, FALSE)),   # missing answers = not excluded
+         excluded = excl_language | excl_rr_below_chance | excl_no_coursework)
 
-print(exclusions %>% select(participant_id, group, native_1, dominance_1, excl_language, acc_RR, excl_rr_below_chance, excluded), n = Inf)
+
+print(exclusions %>% select(participant_id, group, native_1, dominance_1, spanish_class_years,
+                            excl_language, acc_RR, excl_rr_below_chance, excl_no_coursework, excluded), n = Inf)
 cat("Excluded:", sum(exclusions$excluded), "of", nrow(exclusions), "participants | language:", sum(exclusions$excl_language),
-    "| RR below chance:", sum(exclusions$excl_rr_below_chance), "\n")
+    "| RR below chance:", sum(exclusions$excl_rr_below_chance),
+    "| L2 with no Spanish classes:", sum(exclusions$excl_no_coursework), "\n")
 
 singletaskraw <- singletaskraw %>%
   filter(!subject %in% exclusions$participant_id[exclusions$excluded])
@@ -545,7 +557,7 @@ singletaskraw <- singletaskraw %>%
 ## ===================================
 
 # take out outliers (same as before, anything faster than 150ms
-# and anything outside of 2SDs of the mean by participant by condition)
+# and anything outside of 2.5 SDs of the mean by participant by condition)
 # reaction_time = ms from AUDIO ONSET (as in the paper); participants could answer before the audio ended
 RT_MIN_MS <- 150   # paper: responses faster than 150 ms are removed
 SD_CUTOFF <- 2.5     # paper (text): responses outside 2 SDs of the participant-by-RC-type mean are removed however the authors' own code uses 2.5 (this reproduces the 2.8% removed that they report); so setting 2.5 to match their code
@@ -621,6 +633,9 @@ cat("Language exclusions:",
 
 cat("RR below chance exclusions:",
     sum(exclusions$excl_rr_below_chance), "\n")
+
+cat("L2 with no Spanish coursework exclusions:",
+    sum(exclusions$excl_no_coursework), "\n")
 
 cat("Total excluded:",
     sum(exclusions$excluded), "\n")
