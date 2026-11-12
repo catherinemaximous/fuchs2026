@@ -42,17 +42,126 @@ The key test for this project is the within-person contrast between Subject Rela
 To detect the effect of subject relatives being more accurate than object relatives, the following sample size is needed for at 80%, 90%, and 95% power. Power analysis for heritage speakers and second language learners (ERBs) indicated that approximately 4 participants would be required to achieve 80% power, 4 participants to achieve 90% power, and 5 participants to achieve 95% power. 
 
 ```{r}
-#heritage speakers
-library(pwr)
-dz <- 29.52 / sqrt(31)
-dz
-sapply(c(.8, .9, .95), \(p) pwr.t.test(d = dz / 2, power = p, type = "paired")$n)
+# Simulate data with values estimated from Figure 3
 
-#ERBs
-dz2 <- 24.12 / sqrt(21)
-dz2
-sapply(c(.8, .9, .95),\(p) pwr.t.test(d = dz / 2,power = p,type = "paired")$n)
+library(tidyverse)
+library(lme4)
+
+acc <- tribble(
+  ~group, ~aud_diff, ~p,
+  "HS",   "RR", .95,
+  "HS",   "SR", .90,
+  "HS",   "OR", .45,
+  "L2",   "RR", .75,
+  "L2",   "SR", .70,
+  "L2",   "OR", .40
+)
+
+one_experiment <- function(n_HS, n_L2, acc){
+
+  dat <- bind_rows(
+
+    expand_grid(
+      subject = paste0("HS_",1:n_HS),
+      aud_diff = c("RR","SR","OR"),
+      trial = 1:40
+    ) %>% mutate(group="HS"),
+
+    expand_grid(
+      subject = paste0("L2_",1:n_L2),
+      aud_diff = c("RR","SR","OR"),
+      trial = 1:40
+    ) %>% mutate(group="L2")
+  )
+
+  dat <- left_join(
+    dat,
+    acc,
+    by = c("group","aud_diff")
+  )
+
+  dat$aud_corr <- rbinom(
+    nrow(dat),
+    size = 1,
+    prob = dat$p
+  )
+
+  fit <- suppressWarnings(
+    glmer(
+      aud_corr ~ group * aud_diff + (1|subject),
+      family = binomial,
+      data = dat
+    )
+  )
+
+  coef(summary(fit))
+}
 ```
+
+
+```{r}
+#Check power for the SR vs OR effect
+sr_or_power <- function(n_HS, n_L2, nsim = 20){
+
+  mean(
+    replicate(nsim, {
+
+      out <- one_experiment(
+        n_HS = n_HS,
+        n_L2 = n_L2,
+        acc = acc
+      )
+
+     out["aud_diffSR","Pr(>|z|)"] < .05
+
+    })
+  )
+}
+
+#Power across different sample sizes
+power_curve <- tibble(
+  n = c(10, 20, 30, 40, 50, 75, 100)
+) %>%
+  mutate(
+    power = map_dbl(
+      n,
+      \(x) sr_or_power(
+        n_HS = round(x * .6),
+        n_L2 = round(x * .4),
+        nsim = 5
+      )
+    )
+  )
+
+#Figure
+ggplot(power_curve,
+       aes(n,power)) +
+  geom_line(linewidth = 1.2) +
+  geom_hline(
+    yintercept = c(.80,.90,.95),
+    linetype = "dashed"
+  ) +
+  labs(
+    x = "Total sample size",
+    y = "Power",
+    title = "Power for SR vs OR contrast"
+  ) +
+  theme_minimal()
+
+#Estimated N for .80, .90, .95 power
+power_curve %>%
+  filter(power >= .80) %>%
+  slice(1)
+
+power_curve %>%
+  filter(power >= .90) %>%
+  slice(1)
+
+power_curve %>%
+  filter(power >= .95) %>%
+  slice(1)
+```
+
 ```{r}
 library(pwr)
 
@@ -101,27 +210,51 @@ For 80% power, to find the SR > OR effect which is the main effect, I need at le
 4. Make a power curve
 
 ```{r}
-library(pwr)
 library(tidyverse)
 
-# effect sizes (d_z) from the planning step, for the SR vs. OR contrast
-effects_or <- tibble(
-  scenario = c("HS: original", "HS: half effect", "HS: safeguard",
-               "ERB: original", "ERB: half effect", "ERB: safeguard"),
-  d = c(5.302, 2.651, 4.715,
-        5.263, 2.632, 4.556)
-)
+# Sample sizes to evaluate
+power_curve <- tibble(
+  n = c(2,3,4,5,6,8,10,15,20)
+) %>%
+  mutate(
+    power = map_dbl(
+      n,
+      \(x) sr_or_power(
+        n_HS = round(x * .6),
+        n_L2 = round(x * .4),
+        nsim = 20
+      )
+    )
+  )
 
-# the effect is huge, so power reaches 1 almost immediately: use a much smaller range of N
-curve_or <- effects_or |>
-  cross_join(tibble(n = 3:20)) |>
-  mutate(power = map2_dbl(d, n, \(d, n) pwr.t.test(n = n, d = d, type = "paired")$power))
+power_curve
 
-ggplot(curve_or, aes(n, power, colour = scenario)) +
-  geom_line(linewidth = 1) +
-  geom_hline(yintercept = .8, linetype = "dashed") +
-  labs(x = "Number of people", y = "Power", title = "SR vs. OR") +
+ggplot(power_curve,
+       aes(x = n,
+           y = power)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = c(.80,.90,.95),
+             linetype = "dashed") +
+  labs(
+    title = "Power for SR vs. OR Contrast",
+    x = "Total Sample Size",
+    y = "Power"
+  ) +
+  coord_cartesian(ylim = c(.7, 1)) +
   theme_minimal()
+
+power_curve %>%
+  filter(power >= .80) %>%
+  slice(1)
+
+power_curve %>%
+  filter(power >= .90) %>%
+  slice(1)
+
+power_curve %>%
+  filter(power >= .95) %>%
+  slice(1)
 ```
 
 ```{r}
@@ -182,7 +315,7 @@ Planned sample size and/or termination rule, sampling frame, known demographics 
 
 The planned study will collect heritage Spanish-English bilinguals and Second language learners of Spanish from the SONA participant pool. This pool will contain college students, aged 18 years or older. 
 
-Data exclusions will be applied to any participants that have Spanish listed as their native language and have grown up in a Spanish dominant environment past childhood. Any participants that score low below chance (<50%) on the RR RC-type will be excluded as that will be indication of not understanding the task or not paying attention. Reaction time will be excluded as well however different from the original paper, since reaction time on JsPsych begins at the onset of audio. Reaction time faster than 150 ms will be excluded and slower than 10000 after audio offset will be excluded.
+Data exclusions will be applied to any participants that have Spanish listed as their native language and have grown up in a Spanish dominant environment past childhood. Any participants that score low below chance (<50%) on the RR RC-type will be excluded as that will be indication of not understanding the task or not paying attention. Reaction time will be excluded as well however different from the original paper, since reaction time on JsPsych begins at the onset of audio. Reaction time faster than 150 ms will be excluded.
 
 ### Materials
 
