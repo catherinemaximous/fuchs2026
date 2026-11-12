@@ -46,7 +46,7 @@ const AUDIO_CHECK_MAX_TRIES = 3;                // sound check: each of the 3 ch
 const SOUND_CHECK_MIN_PLAYS = 1;                // how many times a phrase must be played before the question appears (they can always replay it more often)
 // SONA credit link. The participant's SONA code (from ?id=%SURVEY_CODE% in the study URL) is added to the end of this address.
 // (If the address contains %SURVEY_CODE% the code is put there instead.)
-const SONA_COMPLETION_URL = ' https://ucsd.sona-systems.com/webstudy_credit.aspx?experiment_id=3165&credit_token=0c83ff3fe10243d7af75630d329fa1d4&survey_code=';
+const SONA_COMPLETION_URL = 'https://ucsd.sona-systems.com/webstudy_credit.aspx?experiment_id=3165&credit_token=0c83ff3fe10243d7af75630d329fa1d4&survey_code=%SURVEY_CODE%';
 const SONA_REDIRECT_DELAY_MS = 2000;            // after the data are saved, wait this long on the thank-you screen, then go to SONA (0 = at once)
 const ATTENTION_CHECKS = true;                  // a short audio attention check (same format as the sound check, one attempt) at the end of every block
 /* ===================================================== */
