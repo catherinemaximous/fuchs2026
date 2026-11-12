@@ -492,8 +492,7 @@ function attachSoundCheck(item, st, minPlays) {
   const params = new URLSearchParams(window.location.search);
   // Testing switches:  ?nosave=1 (do not send data to DataPipe)  ?p=test1 (fixed list)  ?debug=1 (stimulus check)  ?n=2 (only 2 trials per structure)
   const NOSAVE = params.get('nosave') === '1';
-  // SONA: the study URL ends in ?id=%SURVEY_CODE% so the participant ID is their SONA code (the name/phone form is skipped).
-  // Otherwise the ID = first 3 letters of first name + first 3 of last name + last 2 phone digits (e.g. CATMAX42).
+  // Participants are identified using the SONA code passed in the study URL (?id=%SURVEY_CODE%).
   const sonaCode = params.get('id') || '';
   let participantId = sonaCode ? sonaCode.toUpperCase().replace(/[^A-Z0-9]/g, '') : null;
 
@@ -545,7 +544,7 @@ function attachSoundCheck(item, st, minPlays) {
       if (saved && hasSona) setTimeout(() => { window.location = sonaUrl; }, SONA_REDIRECT_DELAY_MS);   // redirect only after the data are saved
     }
   };
-  // saves one CSV per participant to DataPipe (named with the participant ID entered during the study)
+  // saves one CSV per participant to DataPipe (named with their SONA participant ID)
   async function saveData(csv) {
     const filename = (participantId || 'NOID') + (ADD_SUFFIX ? '_' + subject_id.slice(0, 5) : '') + '.csv';
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -564,7 +563,12 @@ function attachSoundCheck(item, st, minPlays) {
   const jsPsych = initJsPsych(initOptions);
   var subject_id = jsPsych.randomization.randomID(10);
   // completion_status is in every row of the CSV: "incomplete" until the participant reaches the very end of the study, then "complete"
-  jsPsych.data.addProperties({ subject_id: subject_id, completion_status: 'incomplete' });
+  jsPsych.data.addProperties({
+    subject_id: subject_id,
+    participant_id: participantId || '',
+    sona_code: sonaCode,
+    completion_status: 'incomplete'
+  });
 
   // This participant's list is generated from their random ID (or from ?p= when testing)
   const PID = params.get('p') || subject_id;
@@ -584,7 +588,7 @@ function attachSoundCheck(item, st, minPlays) {
 <p>The purpose of this study is to better understand how well previously published studies in the psychological field replicate online and with different populations. Your participation in this research should last approximately 5-30 minutes  If you agree to take part in this study, you may be asked to view a set of stimuli, including pictures, sounds, written text, or videos and then giving some responses via key-presses, verbally, or with paper-and-pencil. We may also observe your choices or preferences among an array of stimuli.  These stimuli will be taken directly from or closely adapted from studies that already exist in the published psychological literature. Stimuli will include, e.g., pictures of objects and human faces, audio and video clips, short text passages, etc. None of the stimuli will be disturbing, threatening, or offensive. The online and in-person experiments described in this protocol will take no more than 30 minutes. An example game you might play would be to click on an image on the screen that matches a word you hear being said out loud. Your total expected time commitment for this study is between 5-30 minutes, and is specified in the study description.</p>
 <p>Your participation in this study is completely voluntary and you can withdraw at any time. Choosing not to participate or withdrawing will result in no penalty or loss of benefits to which you are entitled. You are free to skip any question that you choose.</p>
 <p>We will not be asking for any personally identifying information, and we will handle responses as confidentially as possible. Your SONA or Prolific IDs will never be tied to your responses on this survey. However, we cannot guarantee the confidentiality of information transmitted over the Internet. To minimize this risk, data containing anything that might be personally identifiable (e.g. Prolific IDs or IP addresses) will be encrypted on transfer and storage and will only be accessible to qualified lab personnel. We will be keeping data collected as part of this experiment indefinitely. This anonymized data (containing neither Prolific IDs nor IP addresses) may be shared with the scientific community or with other participants to be used as stimuli in future studies.</p>
-<p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s),  Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
+<p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s),  Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a>, and Catherine Maximous, <a href="mailto:cmaximous@ucsd.edu">cmaximous@ucsd.edu</a>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
 <p>By participating in this research you are indicating that you are at least 18 years old, have read this consent form, and agree to participate in this research study. Please keep this consent form for your records.</p></div>`,
     on_finish: d => {
       d.consent = d.response === 0 ? 'consented' : 'declined';
@@ -595,28 +599,6 @@ function attachSoundCheck(item, st, minPlays) {
       }
     }
   });
-
- timeline.push({
-  type: jsPsychSurveyHtmlForm,
-  button_label: 'Continue',
-  html: `<div class="instr"><p><b>Participant ID</b></p>
-    <p>First 3 letters of your first name: <input name="first" required minlength="3" maxlength="3" pattern="[A-Za-z]{3}" size="4" autocomplete="off"></p>
-    <p>First 3 letters of your last name: <input name="last" required minlength="3" maxlength="3" pattern="[A-Za-z]{3}" size="4" autocomplete="off"></p>
-    <p>Last 2 digits of your phone number: <input name="phone" required minlength="2" maxlength="2" pattern="[0-9]{2}" size="3" autocomplete="off"></p>
-    <p><i>English letters only. If a name has fewer than 3 letters, add X (e.g. LIX).</i></p></div>`,
-  data: { task: 'participant_id' },
-  on_finish: d => {
-    const r = d.response;
-
-    participantId =
-      (r.first + r.last).toUpperCase() + r.phone;
-
-    jsPsych.data.addProperties({
-      participant_id: participantId,
-      sona_code: sonaCode || ''
-    });
-  }
-});
 
   timeline.push({
     type: jsPsychPreload,
