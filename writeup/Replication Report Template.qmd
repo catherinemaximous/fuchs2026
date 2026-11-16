@@ -840,6 +840,8 @@ if (n_groups == 2) {
     aud_corr ~ group*aud_diff + (1|audiostimulus)), LING_foranalysis)
   aud_glm1 <- main$fit
   print(summary(aud_glm1))
+  cat("\nFinal model:\n") #Are HSs and ERBs different overall? #Are RR, SR, and OR different overall? #Does the RC-type effect differ between HSs and ERBs?
+print(main$formula)
  
   # relevel to check effect of L2 (same random-effects structure as the main model)
   cat("\n##### RELEVELED (group_relevel: contrast1 = L2) #####\n")
@@ -903,7 +905,6 @@ ggsave(
   dpi = 600          # resolution
 )
 print(dualFig3)    # shows the plot
-
 ```
 
 *Side-by-side graph with original graph is ideal here*
