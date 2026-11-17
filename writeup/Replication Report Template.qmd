@@ -307,15 +307,14 @@ ggplot(curve_sr_or, aes(x = n, y = power, colour = scenario)) +
 ```
 
 
-> The original study reported a within-person SR vs. OR effect of d_Z = 5.30 (z=29.52) for both heritage speakers (N = 31) and second language learners (ERBs; N = 21, dz = 5.26, z = 24.12). Because published effects tend to be inflated, we planned for half the original effect size. For For HSs, dz = 2.65 requires only 4 participants for 80% power, and for ERBs, dz = 2.63 likewise requires only 4 participants. Even more conservative estimates based on half of the effects implied by the original log-odds coefficients require only 7 participants for HSs (d = 1.40) and 12 participants for ERBs (d = 0.91). Thus, the planned sample size is not driven by power for the primary confirmatory test SR-versus-OR, which is already highly powered at small sample sizes. Instead, sample size will be determined by feasibility and by the goal of obtaining stable estimates across both participant groups. I will run 131 participants in total (78 HSs and 53 ERBs), which is about 2.5 times the original sample. This gives about 80% power to reject d33=.28, the effect the original study had 33% power to detect (Simonsohn, 2015). It also gives 80% power for effects of d_Z = .32 or larger. A non-significant result would tell us whether the effet is as larger as the original study could have detected, but not whether there is a smaller effect below about d_z =.3. 
+> The original study reported a within-person SR vs. OR effect of d_Z = 5.30 (z=29.52) for both heritage speakers (N = 31) and second language learners (ERBs; N = 21, dz = 5.26, z = 24.12). Because published effects tend to be inflated, we planned for half the original effect size. For For HSs, dz = 2.65 requires only 4 participants for 80% power, and for ERBs, dz = 2.63 likewise requires only 4 participants. Even more conservative estimates based on half of the effects implied by the original log-odds coefficients require only 7 participants for HSs (d = 1.40) and 12 participants for ERBs (d = 0.91). Thus, the planned sample size is not driven by power for the primary confirmatory test SR-versus-OR, which is already highly powered at small sample sizes. Instead, recruitment will continue throughout the available data-collection period, with a target sample size similar to that of the original study. I therefore aim to recruit approximately 60 participants in total, with representation from both heritage speakers and L2 learners that broadly resembles the composition of the original sample. Recruitment will stop when the data-collection period ends or when approximately this sample size has been reached. This gives about 80% power to reject d33=.28, the effect the original study had 33% power to detect (Simonsohn, 2015). It also gives 80% power for effects of d_Z = .32 or larger. A non-significant result would tell us whether the effete is as larger as the original study could have detected, but not whether there is a smaller effect below about d_z =.3. 
 
 
 ### Planned Sample
-Planned sample size and/or termination rule, sampling frame, known demographics if any, preselection rules if any.
 
-The planned study will collect heritage Spanish-English bilinguals and Second language learners of Spanish from the SONA participant pool. This pool will contain college students, aged 18 years or older. 
+The planned study will recruit Participants from the UC San Diego SONA participant pool and will consist of heritage Spanish-English bilinguals and Spanish L2 learners (ERBs) who are at least 18 years of age. Because the primary confirmatory comparison is well powered even at modest sample sizes, recruitment will continue throughout the available data-collection period. The final sample is expected to be comparable in size to that of the original study. Therefore the planned N is 60 participants in total (30 Heritage speakers and 30 ERBs). 
 
-Data exclusions will be applied to any participants that have Spanish listed as their native language and have grown up in a Spanish dominant environment past childhood. Any participants that score low below chance (<50%) on the RR RC-type will be excluded as that will be indication of not understanding the task or not paying attention. Reaction time will be excluded as well however different from the original paper, since reaction time on JsPsych begins at the onset of audio. Reaction time faster than 150 ms will be excluded. Additionally, participants that fail more than 2 out of the 4 attention checks will be excluded. 
+Participants will be excluded if they report Spanish as both their first-acquired language and their most dominant language, indicating continued Spanish dominance beyond childhood. Participants will also be excluded if their accuracy on Reduced Relative (RR) trials falls below chance (< 50%), as this may indicate a failure to understand the task or insufficient attention during testing. In addition, participants reporting less than one year of Spanish coursework will be excluded from the L2 group. Participants scoring fewer than two correct responses on the four attention-check trials will also be excluded. For reaction-time analyses, responses faster than 150 ms will be removed, as such responses are unlikely to reflect meaningful processing. As in the original study, reaction-time outliers will be removed separately for each participant and RC type, with responses falling more than 2.5 standard deviations from a participant's mean within a given condition excluded from analysis.
 
 ### Materials
 
@@ -342,9 +341,9 @@ The study does not mention how many sentence structures are shown per trial but 
 Language-history questionnaire:
 
 To characterize the population, prior to the task, participants will receive a language background questionnaire. The paper states that they used a "a pen-and-paper version ofthe Bilingual Language Profile (BLP) (Birdsong et al., 2012) and an additional brief questionnaire consisting of selected questions from the Language Experience and Proficiency Questionnaire(LEAP-Q)(Kaushanskaya
-et al., 2020; Marian et al., 2007)." However, due to this experiment using JsPysch, the questionnaire will be administered online. The important questions to assess heritage speakers of Spanish in this study who list their English first as their dominant language and who did not grew up in a Spanish-dominant environment past childhood. They should also have acquired Spanish at or before the age of 6. Participants who report learning the language after 6 years old will be considered second-language learner (ERBs). Participants who grew up in a Spanish-dominant environment past childhood and list Spanish first as their dominant language are excluded as they are considered part of the Spanish-raised bilinguals (SRBs) group. ERBs should also report taking at least more than one year of Spanish coursework. 
+et al., 2020; Marian et al., 2007)." However, due to this experiment using JsPysch, the questionnaire will be administered online. The important questions to assess heritage speakers of Spanish in this study are those who are primarily English-dominant and who did not grow up in a Spanish-dominant environment beyond early childhood. Participants who reported Spanish as both their first-acquired language and their most dominant language were excluded from the study, as these individuals were considered Spanish-raised bilinguals (SRBs) rather than heritage speakers. Late L2 learners (ERBs) should also report English as their first and dominant language.
 
-is including questions regarding age of language acquisition for Spanish and English and place of birth/time of immigration. Heritage speakers are characterized as have acquired the heritage language at birth and English later (first year of schooling) and were born and raised in the US or immigrated to the US prior to or at the age of 6. Second language learners of Spanish are those who have enrolled in Spanish courses in high school or University. 
+Overall, participants are classified into language groups on the basis of their reported age of acquisition of Spanish. Participants who reported beginning to learn Spanish at or before age six were classified as Heritage Speakers (HS). Participants who reported beginning to learn Spanish at age seven or later were classified as Late L2 Learners (ERBs). ERBs are  required to have at least one year of Spanish coursework. Participants reporting fewer than one year of Spanish coursework are excluded.
 
 ### Procedure	
 Can quote directly from original article - just put the text in quotations and note that this was followed precisely.  Or, quote directly and just point out exceptions to what was described in the original article.
@@ -362,18 +361,15 @@ Can also quote directly, though it is less often spelled out effectively for an 
 
 In this study, the authors "took a general mixed effects modeling approach for analysis. All data were processed and analyzed in R Version 4.2.1(R CoreTeam, 2021) using the lme4 package (Bates et al., 2015). For each analysis,the maximal random effect structure supported by the data was included; if a model including random slopes and intercepts did not converge, the random effects structure was reduced until convergence was reached. Random intercepts grouped by participant were prioritized over random intercepts grouped by item when a model with both of these did not converge, to account for typically larger by-participant than by-item variation (Sonderegger, 2023)." This is to check if the difficulty manipulation worked and that performance on OR will show less accurate responses compared to the other two sentence structures. 
 
-For the picture-matching task, "responses faster than 150 ms and outside of 2.5 standard deviations of the mean (grouped by participant and by relative clause type) were excluded from analysis, removing 2.8% of the data, at approximately equal rates across the three groups and across conditions within each group." Participants who report Spanish as their dominant language AND their first acquired language will be excluded as they do not fit the heritage speaker or L2 profile. L2 speakers who report never taking a Spanish course will be excluded as they may not be second-language learners. This will help assess the level of knowledge of these second-language learners as well. Participants who answer less than 2 correct on the attention checks will also be excluded as they will be considered having not been paying attention to the task.
+In this study, following the original study, analyses will be conducted in R using generalized linear mixed-effects models implemented in the lme4 package (Bates et al., 2015). A prespecified sequence of random-effects structures will be evaluated, beginning with the most complex model and proceeding to simpler structures. The first model that converges without warnings and without a singular fit will be retained. If no candidate model fits cleanly, the first estimable model will be reported and interpreted with caution. Participant-level random effects will be prioritized over item-level random effects when simpler models are required. 
+
+For the picture-matching task, "responses faster than 150 ms and outside of 2.5 standard deviations of the mean (grouped by participant and by relative clause type) were excluded from analysis, removing 2.8% of the data, at approximately equal rates across the three groups and across conditions within each group." Participants who report Spanish as their dominant language AND their first acquired language will be excluded as they do not fit the heritage speaker or L2 profile. L2 speakers who report less than one year of Spanish coursework will be excluded. This will help assess the level of knowledge of these second-language learners as well. Participants who score fewer than 2 correct responses on the attention checks will also be excluded as they will be considered having not been paying attention to the task.
 
 The planned confirmatory test for this will be the SR-versus-OR contrast in picture-matching accuracy. Logistic mixed-effects models will be fit to trial-level accuracy data, and follow-up models within HSs and ERBs will evaluate whether Subject Relatives are identified more accurately than Object Relatives.
 
 **Clarify key analysis of interest here**  You can also pre-specify additional analyses you plan to do.
 
-The key analysis of interest here is performance on the RC type specifically looking at the difference of performance between SRs and ORs. This is because the original study found a significant effect of RC type on SRs than ORs  (β=3.27,SE=0.07,z=44.14,p<0.001). Similar to the original paper, I will use a "logistic mixed effects regression model was fitted to
-the data,predicting log-odds of the probability of a correct response
-by group,RC type and their interaction,as well as random intercepts grouped by item (models with random effects grouped by
-participant did not converge)."
-
-Following the original study, trial-level accuracy will be analyzed using logistic mixed-effects regression. Accuracy will be predicted from participant group (heritage speakers [HSs] versus second-language learners [ERBs]), relative-clause type (RR, SR, OR), and their interaction. Random effects will be included whenever supported by model convergence. As in the original study, follow-up analyses will examine the effects of relative-clause type separately within each participant group.
+The key analysis of interest here is performance on the RC type specifically looking at the difference of performance between SRs and ORs. This is because the original study found a significant effect of RC type on SRs than ORs  (β=3.27,SE=0.07,z=44.14,p<0.001). Similar to the original paper, a logistic mixed effects regression model will be fit to trial-level accuracy data. Accuracy will be predicted by participant group, RC type, and their interaction. Random-effects structures were evaluated in a prespecified order from most to least complex. The first model that converged successfully and did not produce a singular fit was retained. If no candidate model met these criteria, the first estimable model was retained and interpreted with caution.
 
 The primary confirmatory test will be the SR-versus-OR contrast within each participant group. Replication will be considered successful if participants show significantly higher accuracy for Subject Relatives than for Object Relatives, consistent with the pattern reported in the original study.
 
@@ -384,12 +380,17 @@ The known differences from the original study is first the procedure. In the ori
 
 The entire study will also be administered online through SONA and using JsPsych and hosted on GitHub Pages. This is different as the original study was conducted in the lab. To control for any environmental noise, audio checks and attention checks will be added.
 
-The heritage Spanish-English population should be a similar sample to the one in the original study however recruiting second-language Spanish learners will be more broad and not from students who are currently enrolled in university-level courses in Spanish.Instead these will be participants who report taking at least one year of Spanish class so they should answer (1+) on "How many years of classes (grammar, history, math, etc.) have you had in the following languages (primary school through university)? [Spanish]."
 
+The characterization of the heritage speaker population will closely follow that of the original study. Heritage Spanish-English bilinguals will be identified on the basis of early exposure to Spanish (age of acquisition ≤ 6 years), current English dominance, and the absence of a Spanish-dominant language environment beyond early childhood.The characterization of the L2 group will differ slightly from that of the original study. Whereas the original study recruited second-language learners who were enrolled in university-level Spanish courses, the present study will recruit a broader sample of Spanish L2 learners from the general participant pool. To ensure meaningful experience with Spanish, participants in the L2 group must report at least one year of Spanish coursework. This criterion is assessed using the language background questionnaire item: “How many years of classes (grammar, history, math, etc.) have you had in the following languages (primary school through university)? [Spanish].” Participants reporting less than one year of Spanish coursework will be excluded from the ERBs group.
 
 Additionally, participants will not be given the flanker task prior to the picture-matching task and instead of completing the questionnaire at the end of the experiment, they will be completing it in the beginning prior to the task. This is to ensure that participants' answers on the proficiency questions are not influenced by their performance on the task. 
 
-The analysis plan and exclusion criteria will look different since I do not have three different types of group and will look at the RC-type group instead. Additionally, on JsPsych reaction time will start from the onset of the audio to the response therefore my exclusion for reaction time should be different. Reaction time will be measured by the onset to the end of the audio. Any participants that score low (<.50) on the RR condition will also be excluded as it is considered the baseline and means that participant did not understand the task or is not paying attention. 
+
+The analysis plan and exclusion criteria differ slightly from those of the original study. Since the present study includes only two participant groups (heritage speakers and L2 learners), analyses will focus on the interaction between participant group and relative-clause (RC) type rather than comparisons across three bilingual groups.
+
+Additionally, on JsPsych reaction time will start from the onset of the audio to the response therefore my exclusion for reaction time should be different. In the jsPsych version of the experiment, reaction time is recorded from the onset of the audio stimulus to the participant's response. Consequently, reaction-time exclusion criteria have been adapted to reflect this measurement procedure. Responses faster than 150 ms will be excluded, and additional reaction-time outliers will be removed separately within each participant and RC type. 
+
+Any participants that score low (<.50) on the RR condition will also be excluded as it is considered the baseline and means that participant failed to understand the task or is not paying attention. 
 
 The study's main research question was to test whether heritage speakers' of Spanish are engaging in more cognitive effort when they are required to process language in Spanish. They tested this by comparing them to two other groups and in a dual-task that includes both a linguisitc and non-linguistic task. However, the purpose of this replication is to test the claim of relative-clause processing and comprehension in heritage speakers and how there is an asymmetry between SRs and ORs due to what has been identified in the literature as a hierarchy of processing difficulty. If processing cost is greater for object-extracted relative clauses for the heritage speakers of this sample, I should be able to replicate the findings of the original study. 
 
@@ -464,12 +465,6 @@ participants <- raw %>%
   mutate(spanish_start_num = case_when(spanish_start == "20+" ~ 20, TRUE ~ suppressWarnings(as.numeric(spanish_start))),
          group = case_when(spanish_start_num <= 6 ~ "HS", spanish_start_num >= 7 ~ "L2", TRUE ~ NA_character_))
 
-# Participants from the early version of the study (no questionnaire columns): assign to the ERB group (L2) by hand
-erb_manual <- c("DANNGU32", "CATMAX61", "CCCMMM67")   # participant_id in NOID_bfwzm.csv, NOID_epw4e.csv, NOID_dko4n.csv
-participants <- participants %>%
-  mutate(group = if_else(participant_id %in% erb_manual, "L2", group))
-print(participants %>% count(group))                   # check: these three should now be counted under L2
-
 # the same participant ID in more than one file = repeat attempt: keep the earliest file only
 dup_ids <- participants %>% count(participant_id) %>% filter(n > 1)
 if (nrow(dup_ids) > 0) {
@@ -489,7 +484,7 @@ cat("classified (exactly 7 years ), none left out:", sum(is.na(participants$grou
 # 1. Spanish listed as the native language (first in order of acquisition) AND listed first in language dominance
 #    (i.e. grew up in a Spanish-dominant environment past childhood)  -> excluded
 # 2. Accuracy on RR trials below chance (< 50%): not understanding the task / not paying attention -> excluded
-# 3. L2 (ERB) group only: never took a Spanish class (0 years of Spanish coursework) -> excluded   
+# 3. L2 (ERB) group only: fewer than 1 year of Spanish coursework -> excluded  
 # 4. Attention check: participants that answer less than 2/4 on attention checks are excluded
 
 dom_col   <- "(1) Please list all the languages you know in order of dominance: [#1]"
@@ -537,25 +532,8 @@ rr_acc <- singletaskraw %>%
 # ATTENTION CHECK SCORES
 # ===================================
 
-# Participants who completed the study before attention checks were added
-attention_exempt <- c(
-  "ASHROS25",
-  "MARCER88",
-  "MONSHE03",
-  "DANNGU32",
-  "CCCM M67",
-  "CATMAX61"
-)
-
-# ===================================
-# ATTENTION CHECK SCORES
-# ===================================
-
 attention_scores <- raw %>%
-  filter(
-    task == "attention_check",
-    !participant_id %in% attention_exempt
-  ) %>%
+  filter(task == "attention_check") %>%
   mutate(
     attention_check_passed = as.numeric(attention_check_passed)
   ) %>%
@@ -585,7 +563,7 @@ exclusions <- participants %>%
   ) %>%
   mutate(
     excl_no_coursework = group == "L2" &
-      spanish_class_years <= L2_MIN_CLASS_YEARS,
+      spanish_class_years < 1,
 
     across(
       c(excl_language, excl_rr_below_chance, excl_no_coursework),
@@ -593,11 +571,7 @@ exclusions <- participants %>%
     ),
 
     # Exempt the six early participants from attention-check exclusion
-    excl_attention = if_else(
-      participant_id %in% attention_exempt,
-      FALSE,
-      coalesce(excl_attention, TRUE)
-    ),
+   excl_attention = coalesce(excl_attention, TRUE),
 
     excluded = excl_language |
       excl_rr_below_chance |
@@ -611,9 +585,7 @@ print(exclusions, n = Inf)
 # Exclusion summary
 cat(
   "Excluded:", sum(exclusions$excluded), "of", nrow(exclusions), "participants\n",
-  "Attention-check exclusions:", sum(exclusions$excl_attention), "\n",
-  "Attention-check exempt participants:",
-  sum(exclusions$participant_id %in% attention_exempt), "\n"
+  "Attention-check exclusions:", sum(exclusions$excl_attention), "\n"
 )
 
 # Remove excluded participants from task data
@@ -713,9 +685,6 @@ cat("L2 with no Spanish coursework exclusions:",
 
 cat("Attention-check exclusions:",
     sum(exclusions$excl_attention, na.rm = TRUE), "\n")
-
-cat("Participants exempt from attention checks:",
-    sum(exclusions$participant_id %in% attention_exempt), "\n")
 
 cat("Total excluded:",
     sum(exclusions$excluded, na.rm = TRUE), "\n")
