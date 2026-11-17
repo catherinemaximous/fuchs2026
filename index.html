@@ -305,7 +305,7 @@ function buildQuestionnaire(onAnswers) {
 
   // ---- BLP I. Biographical information ----
   add('blp_bio', 'I. Biographical information',
-    question('Age', '<input type="number" name="age" min="16" max="100" required style="width:80px">') +
+    question('Age', '<input type="number" name="age" min="18" max="100" required style="width:80px">') +
     question('Gender', radioList('gender', [['male', 'Male'], ['female', 'Female'], ['other', 'Other'], ['no_answer', 'Prefer not to say']], true)) +
     question('Current place of residence', 'City/state: <input type="text" name="residence_city_state" required maxlength="60"> &nbsp; Country: <input type="text" name="residence_country" required maxlength="60">') +
     question('Highest level of formal education', selectHtml('education', [['less_than_hs', 'Less than high school'], ['high_school', 'High school'], ['some_college', 'Some college'],
