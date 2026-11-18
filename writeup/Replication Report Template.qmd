@@ -528,6 +528,12 @@ rr_acc <- singletaskraw %>%
   summarise(n_RR = n(), acc_RR = mean(aud_corr), .groups = "drop") %>%
   mutate(excl_rr_below_chance = acc_RR < 0.5)
 
+attention_exempt <- c(
+  "bex7u61men",
+  "yrddfz1qk0",
+  "0oyu7wqasa"
+)
+
 # ===================================
 # ATTENTION CHECK SCORES
 # ===================================
@@ -571,7 +577,11 @@ exclusions <- participants %>%
     ),
 
     # Exempt the six early participants from attention-check exclusion
-   excl_attention = coalesce(excl_attention, TRUE),
+   excl_attention = if_else(
+  participant_id %in% attention_exempt,
+  FALSE,
+  coalesce(excl_attention, TRUE)
+),
 
     excluded = excl_language |
       excl_rr_below_chance |
@@ -666,9 +676,6 @@ print(
     filter(!excluded) %>%
     count(group)
 )
-cat("\n==============================\n")
-cat("EXCLUSION REASONS\n")
-cat("==============================\n")
 
 cat("\n==============================\n")
 cat("EXCLUSION REASONS\n")
