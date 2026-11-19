@@ -13,17 +13,17 @@ Scaled residuals:
 
 Random effects:
  Groups  Name        Variance Std.Dev.
- subject (Intercept) 0.05051  0.2248  
+ subject (Intercept) 0.05052  0.2248  
 Number of obs: 1016, groups:  subject, 9
 
 Fixed effects:
                  Estimate Std. Error z value Pr(>|z|)    
-(Intercept)        1.0027     0.1504   6.665 2.64e-11 ***
+(Intercept)        1.0027     0.1504   6.665 2.65e-11 ***
 group1             0.5662     0.1505   3.762 0.000169 ***
-aud_diff1         -0.2510     0.3539  -0.709 0.478121    
-aud_diff2          4.4424     0.3194  13.910  < 2e-16 ***
-group1:aud_diff1  -0.1557     0.3539  -0.440 0.659891    
-group1:aud_diff2   1.3831     0.3173   4.360 1.30e-05 ***
+aud_diff1         -0.2510     0.3539  -0.709 0.478127    
+aud_diff2          4.4424     0.3194  13.909  < 2e-16 ***
+group1:aud_diff1  -0.1557     0.3539  -0.440 0.659905    
+group1:aud_diff2   1.3831     0.3173   4.359 1.31e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -33,7 +33,7 @@ group1       0.509
 aud_diff1   -0.134 -0.127                     
 aud_diff2    0.324  0.333 -0.649              
 grp1:d_dff1 -0.127 -0.134  0.719 -0.488       
-grp1:d_dff2  0.331  0.324 -0.491  0.626 -0.653
+grp1:d_dff2  0.331  0.325 -0.491  0.626 -0.653
 Generalized linear mixed model fit by maximum likelihood (Laplace
   Approximation) [glmerMod]
  Family: binomial  ( logit )
@@ -56,9 +56,9 @@ Fixed effects:
                          Estimate Std. Error z value Pr(>|z|)    
 (Intercept)                1.0027     0.1504   6.665 2.65e-11 ***
 group_relevel1            -0.5662     0.1505  -3.762 0.000169 ***
-aud_diff1                 -0.2510     0.3539  -0.709 0.478212    
+aud_diff1                 -0.2510     0.3539  -0.709 0.478199    
 aud_diff2                  4.4424     0.3194  13.909  < 2e-16 ***
-group_relevel1:aud_diff1   0.1557     0.3539   0.440 0.659995    
+group_relevel1:aud_diff1   0.1557     0.3539   0.440 0.659968    
 group_relevel1:aud_diff2  -1.3831     0.3173  -4.359 1.31e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -123,9 +123,9 @@ Number of obs: 551, groups:  subject, 5
 
 Fixed effects:
             Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  0.43590    0.16302   2.674   0.0075 ** 
-aud_diff1   -0.09478    0.26576  -0.357   0.7214    
-aud_diff2    3.06904    0.27656  11.097   <2e-16 ***
+(Intercept)  0.43590    0.16301   2.674  0.00749 ** 
+aud_diff1   -0.09478    0.26576  -0.357  0.72136    
+aud_diff2    3.06904    0.27656  11.097  < 2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 

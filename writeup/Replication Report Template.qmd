@@ -214,20 +214,27 @@ library(tidyverse)
 
 # Sample sizes to evaluate
 power_curve <- tibble(
-  n = c(2,3,4,5,6,8,10,15,20)
+  n = c(2, 3, 4, 5, 6, 8, 10, 15, 20)
 ) %>%
   mutate(
     power = map_dbl(
       n,
-      \(x) sr_or_power(
-        n_HS = round(x * .6),
-        n_L2 = round(x * .4),
-        nsim = 20
-      )
+      \(x) {
+        tryCatch(
+          sr_or_power(
+            n_HS = round(x * .6),
+            n_L2 = round(x * .4),
+            nsim = 20
+          ),
+          error = function(e) {
+            NA_real_
+          }
+        )
+      }
     )
   )
 
-power_curve
+print(power_curve)
 
 ggplot(power_curve,
        aes(x = n,
@@ -437,20 +444,37 @@ library(lme4)
 
 #### Import data
 
-data_dir <- "C:/Users/cathe/Documents/GitHub/fuchs2026/data"       # the participant CSVs from DataPipe
-out_dir  <- "C:/Users/cathe/Documents/GitHub/fuchs2026/results"    # figure and model summaries are saved here
-dir.create(out_dir, showWarnings = FALSE)
+data_dir  <- "C:/Users/cathe/Documents/GitHub/fuchs2026/data"
+data_file <- file.path(data_dir, "preprocessed_data.csv")
 
-files <- list.files(data_dir, pattern = "\\.csv$", full.names = TRUE)
-stopifnot("No CSV files found in data_dir" = length(files) > 0)
-raw <- map_dfr(files, function(f) {
-  read_csv(f, col_types = cols(.default = col_character()), show_col_types = FALSE) %>%
-    mutate(source_file = basename(f))
-})
-raw <- raw %>%                       # participant ID, the same in every row of a file
-  group_by(source_file) %>%
-  mutate(participant_id = dplyr::first(na.omit(c(participant_id, subject_id)))) %>%
-  ungroup()
+out_dir <- "C:/Users/cathe/Documents/GitHub/fuchs2026/results"
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Import the preprocessed dataset
+stopifnot("Preprocessed data file not found" = file.exists(data_file))
+
+raw <- read_csv(
+  data_file,
+  col_types = cols(.default = col_character()),
+  show_col_types = FALSE
+)
+
+# Confirm imported data
+cat("\nPreprocessed data successfully imported\n")
+cat("Total rows:", nrow(raw), "\n")
+cat("Unique participants:", n_distinct(raw$participant_id), "\n")
+cat("Original participant files:", n_distinct(raw$source_file), "\n")
+
+
+# Original participant CSV filenames (used for the existing
+# earliest-file duplicate-attempt procedure)
+files <- file.path(data_dir, unique(raw$source_file))
+
+cat("\nData successfully imported:\n")
+cat("Rows:", nrow(raw), "\n")
+cat("Participants:", n_distinct(raw$participant_id), "\n")
+cat("Original source files:", n_distinct(raw$source_file), "\n")
+
 
 # Group membership from the questionnaire question "At what age did you start learning ... [Spanish]":
 #   0-6 years old  -> HS  |  older than 7 (7-19 and "20+") -> L2 (= ERB)  
@@ -655,6 +679,49 @@ contrasts(LING_foranalysis$aud_diff) = my.forward.diff     # contrast1 = RR vs S
 
 
 ```{r}
+
+library(assertthat)
+
+# ==============================
+# SANITY CHECKS
+# ==============================
+
+# Participant counts
+assert_that(nrow(participants) == n_distinct(raw$participant_id))
+assert_that(sum(exclusions$excluded) +
+              sum(!exclusions$excluded) == nrow(exclusions))
+
+# All retained participants should have a valid group
+assert_that(!any(is.na(
+  exclusions$group[!exclusions$excluded]
+)))
+
+# All three RC conditions should be present
+assert_that(all(c("RR", "SR", "OR") %in%
+                  unique(singletaskraw$aud_diff)))
+
+# No retained participants should have RR accuracy below chance
+assert_that(!any(
+  rr_acc$acc_RR < 0.5 &
+    rr_acc$subject %in% exclusions$participant_id[!exclusions$excluded],
+  na.rm = TRUE
+))
+
+# RT cleaning should remove trials, not add them
+assert_that(nrow(single_audio_clean) <= nrow(single_audio))
+
+# Final analysis should contain only retained participants
+assert_that(all(
+  LING_foranalysis$subject %in%
+    exclusions$participant_id[!exclusions$excluded]
+))
+
+# Final dataset should contain all three conditions
+assert_that(all(c("RR", "SR", "OR") %in%
+                  as.character(unique(LING_foranalysis$aud_diff))))
+
+cat("\n[PASS] All sanity checks completed successfully.\n")
+
 cat("\n==============================\n")
 cat("PARTICIPANT COUNTS\n")
 cat("==============================\n")
@@ -882,6 +949,210 @@ ggsave(
 )
 print(dualFig3)    # shows the plot
 ```
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+# 1. Participant-level accuracy
+accuracy_plot_data <- audio_accuracy %>%
+  filter(group != "Gen1.5") %>%
+  transmute(
+    subject,
+    group,
+    aud_diff,
+    metric = "Accuracy (proportion correct)",
+    value = accuracy
+  )
+
+# 2. Participant-level reaction time
+rt_plot_data <- single_audio_clean %>%
+  filter(group != "Gen1.5") %>%
+  group_by(subject, group, aud_diff) %>%
+  summarise(
+    value = mean(reaction_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(metric = "Reaction Time (ms)")
+
+# 3. Combine accuracy and RT
+combined_plot_data <- bind_rows(
+  accuracy_plot_data,
+  rt_plot_data
+)
+
+# 4. Calculate group means and standard errors
+alternative_summary <- combined_plot_data %>%
+  group_by(metric, group, aud_diff) %>%
+  summarise(
+    mean_value = mean(value, na.rm = TRUE),
+    se = sd(value, na.rm = TRUE) / sqrt(sum(!is.na(value))),
+    .groups = "drop"
+  )
+
+# 5. Create figure
+alternativefig <- ggplot(
+  alternative_summary,
+  aes(
+    x = aud_diff,
+    y = mean_value,
+    color = group,
+    group = group
+  )
+) +
+  geom_line(
+    position = position_dodge(width = 0.25),
+    linewidth = 0.8
+  ) +
+  geom_point(
+    position = position_dodge(width = 0.25),
+    size = 3.5
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = mean_value - se,
+      ymax = mean_value + se
+    ),
+    position = position_dodge(width = 0.25),
+    width = 0.12,
+    linewidth = 0.7
+  ) +
+  facet_wrap(
+    ~metric,
+    scales = "free_y",
+    nrow = 1
+  ) +
+  scale_color_manual(
+  values = c("HS" = "#0072B2", "L2" = "#D55E00"),
+  labels = c("HS" = "HS", "L2" = "ERB")
+) +
+  scale_x_discrete(
+    limits = c("RR", "SR", "OR")
+  ) +
+  labs(
+    title = "Picture-Matching Performance",
+    x = "RC Type",
+    y = "Group Mean",
+    color = "Group"
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(
+      face = "bold",
+      hjust = 0.5
+    ),
+    strip.text = element_text(
+      face = "bold",
+      size = 12
+    ),
+    legend.position = "top"
+  )
+ggsave(
+  filename = file.path(out_dir, "alternativefig.png"),
+  plot = alternativefig,
+  width = 6,         # width in inches
+  height = 4,        # height in inches
+  dpi = 600          # resolution
+)
+print(alternativefig)
+```
+
+```{r}
+## ===================================
+## IMPROVED PICTURE-MATCHING ACCURACY
+## ===================================
+
+# 1. Calculate participant-level accuracy
+audio_accuracy <- single_audio_clean %>%
+  group_by(group, subject, aud_diff) %>%
+  summarise(
+    accuracy = mean(aud_corr, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 2. Calculate group means and standard errors
+aud_sum <- audio_accuracy %>%
+  filter(group != "Gen1.5") %>%
+  group_by(group, aud_diff) %>%
+  summarise(
+    mean_acc = mean(accuracy, na.rm = TRUE),
+    se = sd(accuracy, na.rm = TRUE) /
+      sqrt(sum(!is.na(accuracy))),
+    .groups = "drop"
+  )
+
+print(aud_sum)
+
+# 3. Create improved bar plot
+dualFig4 <- ggplot(
+  aud_sum,
+  aes(x = group, y = mean_acc, fill = aud_diff)
+) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black",
+    linewidth = 0.3
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = mean_acc - se,
+      ymax = mean_acc + se
+    ),
+    position = position_dodge(width = 0.8),
+    width = 0.18,
+    linewidth = 0.6
+  ) +
+  scale_fill_manual(
+    values = c(
+      "RR" = "#0072B2",
+      "SR" = "#E69F00",
+      "OR" = "#009E73"
+    ),
+    name = "RC Type"
+  ) +
+  scale_x_discrete(
+    labels = c("HS" = "HS", "L2" = "ERB")
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 1, 0.2),
+    expand = expansion(mult = c(0, 0.03))
+  ) +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(
+    title = "Picture-Matching Accuracy by Group and RC Type",
+    x = "Language Group",
+    y = "Proportion of Correct Responses"
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(
+      face = "bold",
+      size = 14,
+      hjust = 0.5
+    ),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    panel.grid.major.y = element_line(
+      color = "grey90",
+      linewidth = 0.4
+    ),
+    panel.grid.major.x = element_blank()
+  )
+
+# 4. Save figure
+ggsave(
+  filename = file.path(out_dir, "dualFig4.png"),
+  plot = dualFig4,
+  width = 7,
+  height = 5,
+  dpi = 600
+)
+
+print(dualFig4)
+```
+
 
 *Side-by-side graph with original graph is ideal here*
 
