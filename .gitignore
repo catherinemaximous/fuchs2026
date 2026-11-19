@@ -58,3 +58,4 @@ rsconnect/
 # html files (output by Quarto)
 *.html
 .DS_Store
+raw/preprocessing-fuchs2026.Rmd
