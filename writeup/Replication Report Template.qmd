@@ -441,23 +441,19 @@ library(readr)
 library(stringr)
 library(ggplot2)
 library(lme4)
+library(here)
 
 #### Import data
 
-data_dir  <- "C:/Users/cathe/Documents/GitHub/fuchs2026/data"
-data_file <- file.path(data_dir, "preprocessed_data.csv")
+data_file <- here("data", "preprocessed_data.csv")
+out_dir <- here("results")
 
-out_dir <- "C:/Users/cathe/Documents/GitHub/fuchs2026/results"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Import the preprocessed dataset
 stopifnot("Preprocessed data file not found" = file.exists(data_file))
 
-raw <- read_csv(
-  data_file,
-  col_types = cols(.default = col_character()),
-  show_col_types = FALSE
-)
+raw <- read_csv(data_file, show_col_types = FALSE)
 
 # Confirm imported data
 cat("\nPreprocessed data successfully imported\n")
@@ -941,7 +937,7 @@ dualFig3 <- aud_sum %>% filter(group!= "Gen1.5") %>% ggplot(aes(x=group,y=mean_a
                               "L2" = "ERB"))     # CHANGED: no SRB group in your data
 
 ggsave(
-  filename = file.path(out_dir, "Replication-Fig3.png"),
+    filename = here("results", "Replication-Fig3.png"),
   plot = dualFig3,
   width = 6,         # width in inches
   height = 4,        # height in inches
@@ -1047,7 +1043,7 @@ alternativefig <- ggplot(
     legend.position = "top"
   )
 ggsave(
-  filename = file.path(out_dir, "alternativefig.png"),
+    filename = here("results", "alternativefig.png"),
   plot = alternativefig,
   width = 6,         # width in inches
   height = 4,        # height in inches
@@ -1143,7 +1139,7 @@ dualFig4 <- ggplot(
 
 # 4. Save figure
 ggsave(
-  filename = file.path(out_dir, "dualFig4.png"),
+  filename =   filename = here("results" "dualFig4.png"),
   plot = dualFig4,
   width = 7,
   height = 5,
