@@ -33,7 +33,7 @@ Participants are excluded if any of the following criteria are met:
 1. Spanish is reported as both the first-acquired language and the dominant language.
 2. Accuracy on Reduced Relative (RR) trials is below chance (< 50%).
 3. L2 participants report less than one year of Spanish coursework.
-4. Fewer than two attention-check items are answered correctly.
+4. Less than two attention-check items are answered correctly.
 
 
 For reaction-time analyses:
