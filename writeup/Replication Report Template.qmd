@@ -444,7 +444,8 @@ library(lme4)
 library(here)
 
 #### Import data
-
+# urvi added:
+data_dir <- here("..", "data")
 data_file <- here("..", "data", "preprocessed_data.csv")
 out_dir <- here("..", "results")
 
@@ -467,6 +468,7 @@ cat("Original participant files:", n_distinct(raw$source_file), "\n")
 
 # Original participant CSV filenames (used for the existing
 # earliest-file duplicate-attempt procedure)
+# Urvi's comment: error in the line below, 'data_dir' not found, made change in line 448
 files <- file.path(data_dir, unique(raw$source_file))
 
 cat("\nData successfully imported:\n")
@@ -678,7 +680,8 @@ contrasts(LING_foranalysis$aud_diff) = my.forward.diff     # contrast1 = RR vs S
 
 
 ```{r}
-
+# urvi's comment: add install.packages for assertthat
+# install.packages('assertthat')
 library(assertthat)
 
 # ==============================
@@ -1141,8 +1144,9 @@ dualFig4 <- ggplot(
   )
 
 # 4. Save figure
+# urvi's comment: small bug, extra [filename =] and missing comma :) 
 ggsave(
-  filename =   filename = here("results" "dualFig4.png"),
+  filename = here("results", "dualFig4.png"),
   plot = dualFig4,
   width = 7,
   height = 5,
