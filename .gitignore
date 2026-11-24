@@ -59,3 +59,4 @@ rsconnect/
 *.html
 .DS_Store
 raw/preprocessing-fuchs2026.Rmd
+fuchs2026.Rproj

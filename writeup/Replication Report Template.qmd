@@ -445,15 +445,18 @@ library(here)
 
 #### Import data
 
-data_file <- here("data", "preprocessed_data.csv")
-out_dir <- here("results")
+data_file <- here("..", "data", "preprocessed_data.csv")
+out_dir <- here("..", "results")
 
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-# Import the preprocessed dataset
 stopifnot("Preprocessed data file not found" = file.exists(data_file))
 
-raw <- read_csv(data_file, show_col_types = FALSE)
+raw <- readr::read_csv(
+  data_file,
+  col_types = readr::cols(.default = readr::col_character()),
+  show_col_types = FALSE
+)
 
 # Confirm imported data
 cat("\nPreprocessed data successfully imported\n")
